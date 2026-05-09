@@ -11,7 +11,7 @@
 //! aby OBA podpisy były poprawne. Zapewnia to bezpieczeństwo zarówno
 //! przeciwko zagrożeniom klasycznym, jak i kwantowym.
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result}; //, bail - niepotrzebny import, wklej jesli będzie potrzeba
 use ed25519_dalek::{
     Signer, SigningKey as Ed25519SigningKey, Verifier,
     VerifyingKey as Ed25519VerifyingKey, Signature as Ed25519Signature,
