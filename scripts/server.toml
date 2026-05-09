@@ -1,0 +1,13 @@
+[server]
+host = "0.0.0.0"
+port = 8443
+
+[publisher]
+id = "default-publisher"
+name = "Default Publisher"
+key_file = "keys/publisher.json"
+algorithm = "hybrid"
+
+[storage]
+packages_dir = "data/packages"
+manifests_dir = "data/manifests"

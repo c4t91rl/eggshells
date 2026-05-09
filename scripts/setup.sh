@@ -12,12 +12,14 @@ echo "✓ Prerequisites checked"
 
 # Install Rust tools
 echo "📦 Installing Rust tools..."
-cargo install cargo-audit cargo-deny tauri-cli 2>/dev/null || true
+cargo install cargo-audit cargo-deny tauri-cli || true
 
 # Setup UI
 echo "📦 Installing UI dependencies..."
-cd crates/update-client/ui
+cd ../crates/update-client/ui
+npm install vite@^7.0.0 --save-dev
 npm install
+#npm audit fix --force
 cd ../../..
 
 # Create data directories
@@ -39,7 +41,7 @@ echo "To start the update server:"
 echo "  cargo run --bin update-server"
 echo ""
 echo "To start the client (dev mode):"
-echo "  cd crates/update-client && cargo tauri dev"
+echo "  cd ../crates/update-client && cargo tauri dev && cd ../../scripts"
 echo ""
 echo "To run security analysis:"
 echo "  bash scripts/run-sast.sh"
