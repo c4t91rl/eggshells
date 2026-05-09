@@ -5081,6 +5081,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "crypto-core",
+ "dirs",
  "futures",
  "log",
  "reqwest 0.12.28",
