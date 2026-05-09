@@ -1,15 +1,22 @@
+# secure-update-system/Cargo.toml
 [workspace]
 resolver = "2"
 members = [
-    "crates/crypto-core",
-    "crates/update-server",
-    "crates/update-client",
-    "tools/keygen",
-    "tools/attack-simulator",
+    "crates/common",
+    "crates/server",
+    "crates/client",
+    "crates/publisher-tool",
 ]
 
-[workspace.package]
-edition = "2021"
-version = "0.1.0"
-authors = ["KryptoUpdate Team"]
-license = "MIT"
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = { version = "0.4", features = ["serde"] }
+base64 = "0.22"
+hex = "0.4"
+uuid = { version = "1.0", features = ["v4", "serde"] }
