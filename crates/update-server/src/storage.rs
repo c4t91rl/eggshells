@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use crypto_core::SignedManifest;
 use anyhow::Result;
 
@@ -80,6 +80,11 @@ impl PackageStorage {
             .join(package_name)
             .join(version)
             .join(format!("{}-{}.bin", package_name, version))
+    }
+
+    /// Get the manifests directory path
+    pub fn manifests_dir_path(&self) -> &PathBuf {
+        &self.manifests_dir
     }
 
     /// List all packages
