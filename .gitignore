@@ -1,21 +1,125 @@
-# runtime / generated data
-data
-reports
+# ==========================================
+# Rust
+# ==========================================
+/target/
+**/*.rs.bk
 
-# Rust build artifacts
-target
-**/target
+# Rust analyzer / incremental / profiling
+*.pdb
+*.profraw
+*.profdata
+*.gcda
+*.gcno
 
-# Tauri / frontend artifacts
-crates/update-client/ui/node_modules/
-crates/update-client/ui/dist/
-crates/update-client/ui/build/
+# NIE ignorujemy Cargo.lock
+# Dla aplikacji/binarek warto go trzymać w repo
 
-# Local config
-server.toml
-.env
-*.env
 
-# OS / editor garbage
+# ==========================================
+# IDE / Editor
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
+
+
+# ==========================================
+# Local env / secrets
+# ==========================================
+.env
+.env.*
+!.env.example
+
+# Prywatne klucze publisherów - NIE wrzucać do repo
+*.keys.json
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Jeśli będziecie trzymać publiczne klucze osobno i chcecie je commitować,
+# to zostawiamy *.pub.json poza ignorowaniem
+
+
+# ==========================================
+# Runtime / generated app data
+# ==========================================
+/server_data/
+/downloads/
+/installed/
+/keys/
+/demo-keys/
+
+# Lokalne konfiguracje klienta
+/update-client-config.json
+
+# Jeśli chcecie trzymać template:
+!/update-client-config.example.json
+
+
+# ==========================================
+# Logs / temp files
+# ==========================================
+*.log
+*.tmp
+*.temp
+*.bak
+*.old
+
+
+# ==========================================
+# Generated packages / binaries for demo
+# ==========================================
+*.pkg
+*.bin
+*.exe
+*.msi
+*.deb
+*.rpm
+*.AppImage
+*.tar
+*.tar.gz
+*.zip
+
+# Uwaga:
+# jeśli będziecie commitować RELEASE artifacts do osobnego katalogu,
+# to można zrobić wyjątek, np.:
+#!releases/**
+
+
+# ==========================================
+# Test / demo outputs
+# ==========================================
+/coverage/
+/artifacts/
+/reports/
+/tmp/
+/out/
+
+
+# ==========================================
+# TLS / local certs
+# ==========================================
+/certs/
+/.local-certs/
+
+
+# ==========================================
+# SQLite / local DB
+# ==========================================
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+
+# ==========================================
+# OS-specific crash dumps
+# ==========================================
+*.core
+*.dmp
