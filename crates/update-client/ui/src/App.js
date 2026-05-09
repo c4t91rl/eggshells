@@ -35,17 +35,21 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+var jsx_runtime_1 = require("react/jsx-runtime");
 var react_1 = require("react");
 var appStore_1 = require("./store/appStore");
 var tauriApi_1 = require("./utils/tauriApi");
-var Layout_1 = require("./components/Layout");
-var Dashboard_1 = require("./components/Dashboard");
-var ServerManager_1 = require("./components/ServerManager");
-var UpdateList_1 = require("./components/UpdateList");
-var SecurityStatus_1 = require("./components/SecurityStatus");
-var SettingsPanel_1 = require("./components/SettingsPanel");
-var LogViewer_1 = require("./components/LogViewer");
+var Layout_1 = __importDefault(require("./components/Layout"));
+var Dashboard_1 = __importDefault(require("./components/Dashboard"));
+var ServerManager_1 = __importDefault(require("./components/ServerManager"));
+var UpdateList_1 = __importDefault(require("./components/UpdateList"));
+var SecurityStatus_1 = __importDefault(require("./components/SecurityStatus"));
+var SettingsPanel_1 = __importDefault(require("./components/SettingsPanel"));
+var LogViewer_1 = __importDefault(require("./components/LogViewer"));
 var App = function () {
     var _a = (0, appStore_1.useAppStore)(), currentPage = _a.currentPage, setServers = _a.setServers, addLog = _a.addLog, setSecurityInfo = _a.setSecurityInfo, setIntegrityReport = _a.setIntegrityReport;
     (0, react_1.useEffect)(function () {
@@ -85,17 +89,15 @@ var App = function () {
     }, []);
     var renderPage = function () {
         switch (currentPage) {
-            case 'dashboard': return <Dashboard_1.default />;
-            case 'servers': return <ServerManager_1.default />;
-            case 'updates': return <UpdateList_1.default />;
-            case 'security': return <SecurityStatus_1.default />;
-            case 'settings': return <SettingsPanel_1.default />;
-            case 'logs': return <LogViewer_1.default />;
-            default: return <Dashboard_1.default />;
+            case 'dashboard': return (0, jsx_runtime_1.jsx)(Dashboard_1.default, {});
+            case 'servers': return (0, jsx_runtime_1.jsx)(ServerManager_1.default, {});
+            case 'updates': return (0, jsx_runtime_1.jsx)(UpdateList_1.default, {});
+            case 'security': return (0, jsx_runtime_1.jsx)(SecurityStatus_1.default, {});
+            case 'settings': return (0, jsx_runtime_1.jsx)(SettingsPanel_1.default, {});
+            case 'logs': return (0, jsx_runtime_1.jsx)(LogViewer_1.default, {});
+            default: return (0, jsx_runtime_1.jsx)(Dashboard_1.default, {});
         }
     };
-    return (<Layout_1.default>
-      {renderPage()}
-    </Layout_1.default>);
+    return ((0, jsx_runtime_1.jsx)(Layout_1.default, { children: renderPage() }));
 };
 exports.default = App;

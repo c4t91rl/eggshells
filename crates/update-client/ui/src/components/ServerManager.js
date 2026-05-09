@@ -36,6 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+var jsx_runtime_1 = require("react/jsx-runtime");
 var react_1 = require("react");
 var appStore_1 = require("../store/appStore");
 var tauriApi_1 = require("../utils/tauriApi");
@@ -106,162 +107,23 @@ var ServerManager = function () {
     }); };
     var getTrustBadge = function (level) {
         switch (level) {
-            case 'Pinned': return <span className="status-ok">📌 Pinned</span>;
-            case 'Verified': return <span className="status-ok">✅ Verified</span>;
-            case 'TrustOnFirstUse': return <span className="status-warning">🤝 TOFU</span>;
-            case 'Untrusted': return <span className="status-error">⚠️ Untrusted</span>;
+            case 'Pinned': return (0, jsx_runtime_1.jsx)("span", { className: "status-ok", children: "\uD83D\uDCCC Pinned" });
+            case 'Verified': return (0, jsx_runtime_1.jsx)("span", { className: "status-ok", children: "\u2705 Verified" });
+            case 'TrustOnFirstUse': return (0, jsx_runtime_1.jsx)("span", { className: "status-warning", children: "\uD83E\uDD1D TOFU" });
+            case 'Untrusted': return (0, jsx_runtime_1.jsx)("span", { className: "status-error", children: "\u26A0\uFE0F Untrusted" });
         }
     };
-    return (<div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-dark-50">Update Servers</h2>
-          <p className="text-dark-400 text-sm mt-1">
-            Manage trusted publishers and their signing keys
-          </p>
-        </div>
-        <button onClick={function () { return setShowAddForm(!showAddForm); }} className="btn-primary flex items-center gap-2">
-          <hi2_1.HiOutlinePlusCircle size={18}/>
-          Add Server
-        </button>
-      </div>
-
-      {/* Add Server Form */}
-      <framer_motion_1.AnimatePresence>
-        {showAddForm && (<framer_motion_1.motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="glass-card p-6 overflow-hidden">
-            <h3 className="font-semibold text-dark-100 mb-4">Add Update Server</h3>
-            <div className="flex gap-3">
-              <input type="text" value={newServerUrl} onChange={function (e) { return setNewServerUrl(e.target.value); }} placeholder="https://update-server.example.com" className="input-field flex-1" onKeyDown={function (e) { return e.key === 'Enter' && handleAddServer(); }}/>
-              <button onClick={handleAddServer} disabled={isAdding || !newServerUrl.trim()} className="btn-primary whitespace-nowrap">
-                {isAdding ? 'Discovering...' : 'Discover & Add'}
-              </button>
-            </div>
-            <p className="text-xs text-dark-500 mt-2">
-              The client will connect to the server, fetch its public keys, and register it
-              using Trust On First Use (TOFU) model.
-            </p>
-          </framer_motion_1.motion.div>)}
-      </framer_motion_1.AnimatePresence>
-
-      {/* Server List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {servers.map(function (server, idx) { return (<framer_motion_1.motion.div key={server.publisher.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className={"glass-card-hover p-5 cursor-pointer ".concat((selectedServer === null || selectedServer === void 0 ? void 0 : selectedServer.publisher.id) === server.publisher.id
-                ? 'ring-2 ring-primary-500/50'
-                : '')} onClick={function () { return setSelectedServer(server); }}>
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
-                  <hi2_1.HiOutlineServer size={20} className="text-primary-400"/>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-dark-100">{server.publisher.name}</h4>
-                  <p className="text-xs text-dark-400">{server.publisher.id}</p>
-                </div>
-              </div>
-              {getTrustBadge(server.trust_level)}
-            </div>
-
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-dark-400">
-                <hi2_1.HiOutlineGlobeAlt size={14}/>
-                <span className="font-mono text-xs truncate">{server.url}</span>
-              </div>
-              <div className="flex items-center gap-2 text-dark-400">
-                <hi2_1.HiOutlineKey size={14}/>
-                <span className="font-mono text-xs">
-                  {server.publisher.algorithm === 'HybridEd25519MlDsa65'
-                ? '🔐 Hybrid (Ed25519 + ML-DSA-65)'
-                : server.publisher.algorithm === 'MlDsa65'
-                    ? '🛡️ ML-DSA-65 (Dilithium3)'
-                    : '🔑 Ed25519'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-dark-400">
-                <span className="text-xs">Key ID: </span>
-                <code className="text-xs bg-dark-800 px-1.5 py-0.5 rounded font-mono text-dark-300">
-                  {server.publisher.key_id}
-                </code>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between mt-4 pt-3 border-t border-dark-700/50">
-              <span className="text-xs text-dark-500">
-                {server.last_checked
-                ? "Last checked: ".concat(new Date(server.last_checked).toLocaleString())
-                : 'Never checked'}
-              </span>
-              <button onClick={function (e) {
-                e.stopPropagation();
-                handleRemoveServer(server.publisher.id);
-            }} className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-red-500/10 transition-colors">
-                <hi2_1.HiOutlineTrash size={16}/>
-              </button>
-            </div>
-          </framer_motion_1.motion.div>); })}
-      </div>
-
-      {servers.length === 0 && (<div className="glass-card p-12 text-center">
-          <hi2_1.HiOutlineServer size={48} className="text-dark-600 mx-auto mb-4"/>
-          <h3 className="text-lg font-semibold text-dark-300">No Servers Registered</h3>
-          <p className="text-dark-500 text-sm mt-2">
-            Add an update server to start receiving secure software updates.
-          </p>
-        </div>)}
-
-      {/* Server Detail Panel */}
-      <framer_motion_1.AnimatePresence>
-        {selectedServer && (<framer_motion_1.motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="glass-card p-6">
-            <h3 className="section-title mb-4">
-              Server Details: {selectedServer.publisher.name}
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Public Keys */}
-              <div>
-                <h4 className="text-sm font-semibold text-dark-300 mb-3">Public Keys</h4>
-                {selectedServer.publisher.ed25519_public_key && (<div className="mb-3">
-                    <label className="text-xs text-dark-500 block mb-1">Ed25519 Public Key</label>
-                    <code className="text-xs bg-dark-800 p-2 rounded-lg block font-mono text-dark-300 break-all">
-                      {selectedServer.publisher.ed25519_public_key}
-                    </code>
-                  </div>)}
-                {selectedServer.publisher.ml_dsa_public_key && (<div>
-                    <label className="text-xs text-dark-500 block mb-1">ML-DSA-65 Public Key</label>
-                    <code className="text-xs bg-dark-800 p-2 rounded-lg block font-mono text-quantum-300 break-all max-h-20 overflow-y-auto">
-                      {selectedServer.publisher.ml_dsa_public_key.substring(0, 120)}...
-                    </code>
-                    <span className="text-xs text-dark-500">
-                      ({selectedServer.publisher.ml_dsa_public_key.length} chars)
-                    </span>
-                  </div>)}
-              </div>
-
-              {/* Trust Info */}
-              <div>
-                <h4 className="text-sm font-semibold text-dark-300 mb-3">Trust Information</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-dark-400">Trust Level</span>
-                    {getTrustBadge(selectedServer.trust_level)}
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-dark-400">Algorithm</span>
-                    <span className="text-dark-200 font-mono text-xs">
-                      {selectedServer.publisher.algorithm}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-dark-400">Registered</span>
-                    <span className="text-dark-200 text-xs">
-                      {new Date(selectedServer.publisher.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </framer_motion_1.motion.div>)}
-      </framer_motion_1.AnimatePresence>
-    </div>);
+    return ((0, jsx_runtime_1.jsxs)("div", { className: "space-y-6", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h2", { className: "text-2xl font-bold text-dark-50", children: "Update Servers" }), (0, jsx_runtime_1.jsx)("p", { className: "text-dark-400 text-sm mt-1", children: "Manage trusted publishers and their signing keys" })] }), (0, jsx_runtime_1.jsxs)("button", { onClick: function () { return setShowAddForm(!showAddForm); }, className: "btn-primary flex items-center gap-2", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlinePlusCircle, { size: 18 }), "Add Server"] })] }), (0, jsx_runtime_1.jsx)(framer_motion_1.AnimatePresence, { children: showAddForm && ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0, height: 0 }, animate: { opacity: 1, height: 'auto' }, exit: { opacity: 0, height: 0 }, className: "glass-card p-6 overflow-hidden", children: [(0, jsx_runtime_1.jsx)("h3", { className: "font-semibold text-dark-100 mb-4", children: "Add Update Server" }), (0, jsx_runtime_1.jsxs)("div", { className: "flex gap-3", children: [(0, jsx_runtime_1.jsx)("input", { type: "text", value: newServerUrl, onChange: function (e) { return setNewServerUrl(e.target.value); }, placeholder: "https://update-server.example.com", className: "input-field flex-1", onKeyDown: function (e) { return e.key === 'Enter' && handleAddServer(); } }), (0, jsx_runtime_1.jsx)("button", { onClick: handleAddServer, disabled: isAdding || !newServerUrl.trim(), className: "btn-primary whitespace-nowrap", children: isAdding ? 'Discovering...' : 'Discover & Add' })] }), (0, jsx_runtime_1.jsx)("p", { className: "text-xs text-dark-500 mt-2", children: "The client will connect to the server, fetch its public keys, and register it using Trust On First Use (TOFU) model." })] })) }), (0, jsx_runtime_1.jsx)("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-4", children: servers.map(function (server, idx) { return ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { delay: idx * 0.05 }, className: "glass-card-hover p-5 cursor-pointer ".concat((selectedServer === null || selectedServer === void 0 ? void 0 : selectedServer.publisher.id) === server.publisher.id
+                        ? 'ring-2 ring-primary-500/50'
+                        : ''), onClick: function () { return setSelectedServer(server); }, children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-start justify-between mb-4", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center gap-3", children: [(0, jsx_runtime_1.jsx)("div", { className: "w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center", children: (0, jsx_runtime_1.jsx)(hi2_1.HiOutlineServer, { size: 20, className: "text-primary-400" }) }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h4", { className: "font-semibold text-dark-100", children: server.publisher.name }), (0, jsx_runtime_1.jsx)("p", { className: "text-xs text-dark-400", children: server.publisher.id })] })] }), getTrustBadge(server.trust_level)] }), (0, jsx_runtime_1.jsxs)("div", { className: "space-y-2 text-sm", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center gap-2 text-dark-400", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineGlobeAlt, { size: 14 }), (0, jsx_runtime_1.jsx)("span", { className: "font-mono text-xs truncate", children: server.url })] }), (0, jsx_runtime_1.jsxs)("div", { className: "flex items-center gap-2 text-dark-400", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineKey, { size: 14 }), (0, jsx_runtime_1.jsx)("span", { className: "font-mono text-xs", children: server.publisher.algorithm === 'HybridEd25519MlDsa65'
+                                                ? '🔐 Hybrid (Ed25519 + ML-DSA-65)'
+                                                : server.publisher.algorithm === 'MlDsa65'
+                                                    ? '🛡️ ML-DSA-65 (Dilithium3)'
+                                                    : '🔑 Ed25519' })] }), (0, jsx_runtime_1.jsxs)("div", { className: "flex items-center gap-2 text-dark-400", children: [(0, jsx_runtime_1.jsx)("span", { className: "text-xs", children: "Key ID: " }), (0, jsx_runtime_1.jsx)("code", { className: "text-xs bg-dark-800 px-1.5 py-0.5 rounded font-mono text-dark-300", children: server.publisher.key_id })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between mt-4 pt-3 border-t border-dark-700/50", children: [(0, jsx_runtime_1.jsx)("span", { className: "text-xs text-dark-500", children: server.last_checked
+                                        ? "Last checked: ".concat(new Date(server.last_checked).toLocaleString())
+                                        : 'Never checked' }), (0, jsx_runtime_1.jsx)("button", { onClick: function (e) {
+                                        e.stopPropagation();
+                                        handleRemoveServer(server.publisher.id);
+                                    }, className: "text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-red-500/10 transition-colors", children: (0, jsx_runtime_1.jsx)(hi2_1.HiOutlineTrash, { size: 16 }) })] })] }, server.publisher.id)); }) }), servers.length === 0 && ((0, jsx_runtime_1.jsxs)("div", { className: "glass-card p-12 text-center", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineServer, { size: 48, className: "text-dark-600 mx-auto mb-4" }), (0, jsx_runtime_1.jsx)("h3", { className: "text-lg font-semibold text-dark-300", children: "No Servers Registered" }), (0, jsx_runtime_1.jsx)("p", { className: "text-dark-500 text-sm mt-2", children: "Add an update server to start receiving secure software updates." })] })), (0, jsx_runtime_1.jsx)(framer_motion_1.AnimatePresence, { children: selectedServer && ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: 20 }, className: "glass-card p-6", children: [(0, jsx_runtime_1.jsxs)("h3", { className: "section-title mb-4", children: ["Server Details: ", selectedServer.publisher.name] }), (0, jsx_runtime_1.jsxs)("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h4", { className: "text-sm font-semibold text-dark-300 mb-3", children: "Public Keys" }), selectedServer.publisher.ed25519_public_key && ((0, jsx_runtime_1.jsxs)("div", { className: "mb-3", children: [(0, jsx_runtime_1.jsx)("label", { className: "text-xs text-dark-500 block mb-1", children: "Ed25519 Public Key" }), (0, jsx_runtime_1.jsx)("code", { className: "text-xs bg-dark-800 p-2 rounded-lg block font-mono text-dark-300 break-all", children: selectedServer.publisher.ed25519_public_key })] })), selectedServer.publisher.ml_dsa_public_key && ((0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("label", { className: "text-xs text-dark-500 block mb-1", children: "ML-DSA-65 Public Key" }), (0, jsx_runtime_1.jsxs)("code", { className: "text-xs bg-dark-800 p-2 rounded-lg block font-mono text-quantum-300 break-all max-h-20 overflow-y-auto", children: [selectedServer.publisher.ml_dsa_public_key.substring(0, 120), "..."] }), (0, jsx_runtime_1.jsxs)("span", { className: "text-xs text-dark-500", children: ["(", selectedServer.publisher.ml_dsa_public_key.length, " chars)"] })] }))] }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h4", { className: "text-sm font-semibold text-dark-300 mb-3", children: "Trust Information" }), (0, jsx_runtime_1.jsxs)("div", { className: "space-y-3", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex justify-between text-sm", children: [(0, jsx_runtime_1.jsx)("span", { className: "text-dark-400", children: "Trust Level" }), getTrustBadge(selectedServer.trust_level)] }), (0, jsx_runtime_1.jsxs)("div", { className: "flex justify-between text-sm", children: [(0, jsx_runtime_1.jsx)("span", { className: "text-dark-400", children: "Algorithm" }), (0, jsx_runtime_1.jsx)("span", { className: "text-dark-200 font-mono text-xs", children: selectedServer.publisher.algorithm })] }), (0, jsx_runtime_1.jsxs)("div", { className: "flex justify-between text-sm", children: [(0, jsx_runtime_1.jsx)("span", { className: "text-dark-400", children: "Registered" }), (0, jsx_runtime_1.jsx)("span", { className: "text-dark-200 text-xs", children: new Date(selectedServer.publisher.created_at).toLocaleDateString() })] })] })] })] })] })) })] }));
 };
 exports.default = ServerManager;
