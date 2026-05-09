@@ -1,0 +1,21 @@
+# runtime / generated data
+data
+reports
+
+# Rust build artifacts
+target
+**/target
+
+# Tauri / frontend artifacts
+crates/update-client/ui/node_modules/
+crates/update-client/ui/dist/
+crates/update-client/ui/build/
+
+# Local config
+server.toml
+.env
+*.env
+
+# OS / editor garbage
+.DS_Store
+Thumbs.db
