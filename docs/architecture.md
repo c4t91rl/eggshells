@@ -3,42 +3,39 @@
 ## Przegląd
 
 System składa się z trzech głównych komponentów:
-┌─────────────────────────────────────────────────────────────────┐
-│ ARCHITEKTURA SYSTEMU │
-├─────────────────────────────────────────────────────────────────┤
-│ │
-│ ┌──────────────┐ HTTP/TLS ┌──────────────────────┐ │
-│ │ │◄──────────────────►│ │ │
-│ │ UPDATE │ │ UPDATE SERVER │ │
-│ │ CLIENT │ 1. Check version │ (Rust/Actix-web) │ │
-│ │ (Rust+egui) │ 2. Get metadata │ │ │
-│ │ │ 3. Download pkg │ ┌────────────────┐ │ │
-│ │ ┌────────┐ │ 4. Verify sig │ │ Publisher A │ │ │
-│ │ │PQ Verify│ │ │ │ (keys + pkgs) │ │ │
-│ │ └────────┘ │ │ ├────────────────┤ │ │
-│ │ ┌────────┐ │ │ │ Publisher B │ │ │
-│ │ │Version │ │ │ │ (keys + pkgs) │ │ │
-│ │ │Check │ │ │ ├────────────────┤ │ │
-│ │ └────────┘ │ │ │ Publisher C │ │ │
-│ │ ┌────────┐ │ │ │ (keys + pkgs) │ │ │
-│ │ │Anti- │ │ │ └────────────────┘ │ │
-│ │ │Tamper │ │ │ │ │
-│ │ └────────┘ │ │ ┌────────────────┐ │ │
-│ │ │ │ │ Metadata DB │ │ │
-│ └──────────────┘ │ │ (SQLite) │ │ │
-│ │ └────────────────┘ │ │
-│ ┌──────────────┐ └──────────────────────┘ │
-│ │ PUBLISHER │ │
-│ │ TOOL (CLI) │ │
-│ │ │ │
-│ │ 1. Keygen │ │
-│ │ 2. Sign │──────────────────────────────────────► │
-│ │ 3. Upload │ │
-│ └──────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-
-text
-
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                             ARCHITEKTURA SYSTEMU                             │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌────────────────────┐       HTTPS (TLS)        ┌────────────────────────┐  │
+│  │   UPDATE CLIENT    │<────────────────────────>│     UPDATE SERVER      │  │
+│  │    (Rust + egui)   │                          │    (Rust/Actix-web)    │  │
+│  ├────────────────────┤    1. Check version      ├────────────────────────┤  │
+│  │ ┌────────────────┐ │    2. Get metadata       │ ┌────────────────────┐ │  │
+│  │ │   PQ Verify    │ │    3. Download pkg       │ │   PUBLISHERS DATA  │ │  │
+│  │ └────────────────┘ │    4. Verify signature   │ │ (Keys + Packages)  │ │  │
+│  │ ┌────────────────┐ │                          │ ├────────────────────┤ │  │
+│  │ │ Version Check  │ │                          │ │ - Publisher A      │ │  │
+│  │ └────────────────┘ │                          │ │ - Publisher B      │ │  │
+│  │ ┌────────────────┐ │                          │ │ - Publisher C      │ │  │
+│  │ │  Anti-Tamper   │ │                          │ └────────────────────┘ │  │
+│  │ └────────────────┘ │                          │ ┌────────────────────┐ │  │
+│  │                    │                          │ │    METADATA DB     │ │  │
+│  └────────────────────┘                          │ │      (SQLite)      │ │  │
+│            ▲                                     │ └────────────────────┘ │  │
+│            │                                     └────────────────────────┘  │
+│            │                                                 ▲               │
+│            │                                                 │               │
+│  ┌─────────┴──────────┐                                      │               │
+│  │   PUBLISHER TOOL   │          Upload (Auth)               │               │
+│  │       (CLI)        ├──────────────────────────────────────┘               │
+│  ├────────────────────┤                                                      │
+│  │  1. Key Generation │                                                      │
+│  │  2. Sign Package   │                                                      │
+│  │  3. Upload Assets  │                                                      │
+│  └────────────────────┘                                                      │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
 
 ## Komponenty
 
@@ -79,60 +76,88 @@ text
 - Klucze prywatne: JSON z uprawnieniami 600 (Linux)
 
 ## Przepływ aktualizacji
-Client Server
-│ │
-│──POST /api/check/{app_id}─────────►│
-│ {current_version, platform} │
-│◄──{update_available, metadata,─────│
-│ publisher_public_key} │
-│ │
-│ [Sprawdź: nowa > obecna?] │
-│ [Sprawdź: key pinning] │
-│ │
-│──GET /api/download/{app}/{ver}────►│
-│◄──[binary data]────────────────────│
-│ │
-│ [Oblicz SHA3-256] │
-│ [Porównaj z hash z metadata] │
-│ [Weryfikuj podpis Dilithium3] │
-│ [Weryfikuj podpis Ed25519] │
-│ [Oba OK? → Zastosuj aktualizację] │
-│ │
-
-text
-
+     CLIENT                                           SERVER
+        │                                                │
+        │─── POST /api/check/{app_id} ──────────────────►│
+        │    Body: {current_version, platform}           │
+        │                                                │
+        │◄── 200 OK ─────────────────────────────────────│
+        │    Body: {update_available, metadata,          │
+        │           publisher_public_key}                │
+        │                                                │
+        ▼                                                │
+  ┌──────────────────────────┐                           │
+  │ Logika Klienta:          │                           │
+  │ 1. Nowa > obecna?        │                           │
+  │ 2. Sprawdź Key Pinning   │                           │
+  └──────────────────────────┘                           │
+        │                                                │
+        │─── GET /api/download/{app}/{ver} ─────────────►│
+        │                                                │
+        │◄── [binary data] ──────────────────────────────│
+        │                                                │
+        ▼                                                │
+  ┌─────────────────────────────────┐                    │
+  │ Weryfikacja Integralności:      │                    │
+  │ 1. Oblicz SHA3-256 pliku        │                    │
+  │ 2. Porównaj z hash z metadata   │                    │
+  └─────────────────────────────────┘                    │
+        │                                                │
+        ▼                                                │
+  ┌─────────────────────────────────┐                    │
+  │ Weryfikacja Kryptograficzna:    │                    │
+  │ 1. Verify Dilithium3 signature  │                    │
+  │ 2. Verify Ed25519 signature     │                    │
+  └─────────────────────────────────┘                    │
+        │                                                │
+        ▼                                                │
+  ┌─────────────────────────────────┐                    │
+  │ Decyzja końcowa:                │                    │
+  │ Oba OK? → Zastosuj aktualizację │                    │
+  └─────────────────────────────────┘                    │
+        │                                                │
 
 ## Model wieloserwera / wielu publisherów
-┌─────────────────────────────────────────┐
-│ MULTI-PUBLISHER MODEL │
-├─────────────────────────────────────────┤
-│ │
-│ Publisher A Publisher B │
-│ ┌──────────┐ ┌──────────┐ │
-│ │ keygen │ │ keygen │ │
-│ │ Dil + Ed │ │ Dil + Ed │ │
-│ └────┬─────┘ └────┬─────┘ │
-│ │ register │ register │
-│ ▼ ▼ │
-│ ┌─────────────────────────────────┐ │
-│ │ UPDATE SERVER │ │
-│ │ publishers table: │ │
-│ │ ├── A: pub_key_A │ │
-│ │ └── B: pub_key_B │ │
-│ └─────────────────────────────────┘ │
-│ ▲ ▲ │
-│ │ upload signed pkg │ upload │
-│ ┌────┴─────┐ ┌────┴─────┐ │
-│ │ sign pkg │ │ sign pkg │ │
-│ │ with A │ │ with B │ │
-│ └──────────┘ └──────────┘ │
-│ │
-│ Klient weryfikuje każdy pakiet │
-│ kluczem odpowiedniego publishera │
-└─────────────────────────────────────────┘
-
-text
-
+┌─────────────────────────────────────────────────────────────────┐
+│                      MULTI-PUBLISHER MODEL                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  PUBLISHER A                           PUBLISHER B              │
+│  ┌──────────┐                          ┌──────────┐             │
+│  │  Keygen  │                          │  Keygen  │             │
+│  │ Dil + Ed │                          │ Dil + Ed │             │
+│  └────┬─────┘                          └────┬─────┘             │
+│       │ 1. Register Public Key              │                   │
+│       └──────────────────┐    ┌─────────────┘                   │
+│                          ▼    ▼                                 │
+│                ┌──────────────────────────┐                     │
+│                │      UPDATE SERVER       │                     │
+│                │                          │                     │
+│                │  [Trust Store / DB]      │                     │
+│                │  ID A: Pub_Key_A         │                     │
+│                │  ID B: Pub_Key_B         │                     │
+│                └─────┬──────────────┬─────┘                     │
+│                      ▲              ▲                           │
+│       2. Upload      │              │      2. Upload            │
+│       Signed Pkg     │              │      Signed Pkg           │
+│    ┌─────────────┐   │              │   ┌─────────────┐         │
+│    │  Sign with  ├───┘              └───┤  Sign with  │         │
+│    │  Priv_Key_A │                      │  Priv_Key_B │         │
+│    └─────────────┘                      └─────────────┘         │
+│                                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│                          DISTRIBUTION                           │
+└───────────────┬─────────────────────────────────┬───────────────┘
+                │                                 │
+                │ 3. Download Pkg + Signature     │
+                ▼                                 ▼
+        ┌─────────────────────────────────────────────────┐
+        │                 CLIENT DEVICE                   │
+        │                                                 │
+        │  1. Fetch Trusted Pub_Keys from Server/Root     │
+        │  2. Identify Publisher of Pkg                   │
+        │  3. Verify Sig(Pkg) using corresponding Pub_Key │
+        └─────────────────────────────────────────────────┘
 
 ## Struktura danych SQLite
 

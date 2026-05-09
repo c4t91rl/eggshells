@@ -70,22 +70,27 @@
 ## Kluczowe scenariusze ataków
 
 ### Scenariusz 1: MITM Attack
-Atakujący Klient Serwer
-│ │ │
-│ Przechwytuje ruch │ │
-│◄───────────────────────┤──────────────────────►│
-│ │ │
-│ Podmienia pakiet │ │
-│ na złośliwy │ │
-│───────────────────────►│ │
-│ │ │
-│ │ [SHA3-256 mismatch!] │
-│ │ [Sig verification │
-│ │ FAILED!] │
-│ │ ❌ ATAK ZABLOKOWANY │
-
-text
-
+Klient              Atakujący (MITM)             Serwer
+    │                        │                        │
+    │   Wysyła pakiet        │                        │
+    │───────────────────────>│                        │
+    │                        │  Przechwytuje i        │
+    │                        │  modyfikuje pakiet     │
+    │                        │                        │
+    │                        │   Wysyła złośliwy      │
+    │                        │   pakiet do serwera    │
+    │                        └───────────────────────>│
+    │                                                 │
+    │                                       [ Weryfikacja... ]
+    │                                                 │
+    │                                       [ SHA3-256 mismatch! ]
+    │                                       [ Sig verification   ]
+    │                                       [      FAILED!       ]
+    │                                                 │
+    │             KOMUNIKAT BŁĘDU                     │
+    │<────────────────────────────────────────────────┤
+    │                                                 │
+    │                ❌ ATAK ZABLOKOWANY              │
 
 **Ochrona:** SHA3-256 hash + hybrydowe podpisy cyfrowe. Atakujący nie ma kluczy prywatnych publishera, więc nie może podpisać zmodyfikowanego pakietu.
 
