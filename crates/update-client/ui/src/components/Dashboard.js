@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var react_1 = require("react");
+var jsx_runtime_1 = require("react/jsx-runtime");
 var appStore_1 = require("../store/appStore");
 var tauriApi_1 = require("../utils/tauriApi");
 var hi2_1 = require("react-icons/hi2");
@@ -75,21 +75,21 @@ var Dashboard = function () {
         {
             title: 'Registered Servers',
             value: servers.length,
-            icon: <hi2_1.HiOutlineServer size={24}/>,
+            icon: (0, jsx_runtime_1.jsx)(hi2_1.HiOutlineServer, { size: 24 }),
             color: 'text-blue-400',
             bg: 'bg-blue-500/10',
         },
         {
             title: 'Available Updates',
             value: availableUpdates.length,
-            icon: <hi2_1.HiOutlineArrowDown size={24}/>,
+            icon: (0, jsx_runtime_1.jsx)(hi2_1.HiOutlineArrowDown, { size: 24 }),
             color: 'text-primary-400',
             bg: 'bg-primary-500/10',
         },
         {
             title: 'Verified Signatures',
             value: availableUpdates.filter(function (u) { return u.verification.is_valid; }).length,
-            icon: <hi2_1.HiOutlineCheckCircle size={24}/>,
+            icon: (0, jsx_runtime_1.jsx)(hi2_1.HiOutlineCheckCircle, { size: 24 }),
             color: 'text-green-400',
             bg: 'bg-green-500/10',
         },
@@ -97,115 +97,21 @@ var Dashboard = function () {
             title: 'Security Warnings',
             value: ((_a = integrityReport === null || integrityReport === void 0 ? void 0 : integrityReport.checks.filter(function (c) { return c.status !== 'Ok'; }).length) !== null && _a !== void 0 ? _a : 0) +
                 availableUpdates.filter(function (u) { return !u.verification.is_valid; }).length,
-            icon: <hi2_1.HiOutlineExclamationTriangle size={24}/>,
+            icon: (0, jsx_runtime_1.jsx)(hi2_1.HiOutlineExclamationTriangle, { size: 24 }),
             color: 'text-yellow-400',
             bg: 'bg-yellow-500/10',
         },
     ];
-    return (<div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-dark-50">Dashboard</h2>
-          <p className="text-dark-400 text-sm mt-1">
-            Post-quantum secure software update management
-          </p>
-        </div>
-        <button onClick={handleCheckUpdates} disabled={isCheckingUpdates} className="btn-primary flex items-center gap-2">
-          <hi2_1.HiOutlineArrowPath size={18} className={isCheckingUpdates ? 'animate-spin' : ''}/>
-          {isCheckingUpdates ? 'Checking...' : 'Check for Updates'}
-        </button>
-      </div>
-
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map(function (stat, index) { return (<framer_motion_1.motion.div key={stat.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className="glass-card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className={"".concat(stat.bg, " p-2.5 rounded-xl ").concat(stat.color)}>
-                {stat.icon}
-              </div>
-            </div>
-            <div className="text-3xl font-bold text-dark-50">{stat.value}</div>
-            <div className="text-sm text-dark-400 mt-1">{stat.title}</div>
-          </framer_motion_1.motion.div>); })}
-      </div>
-
-      {/* Cryptography Info */}
-      {securityInfo && (<framer_motion_1.motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-card p-6">
-          <h3 className="section-title flex items-center gap-2">
-            <hi2_1.HiOutlineShieldCheck size={20} className="text-quantum-400"/>
-            Supported Cryptography
-          </h3>
-          <p className="section-subtitle mb-4">
-            Post-quantum and classical algorithms available for signature verification
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {securityInfo.supported_algorithms.map(function (algo) { return (<div key={algo.name} className="bg-dark-800/50 rounded-xl p-4 border border-dark-700/50">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-dark-100 text-sm">{algo.name}</h4>
-                  {algo.quantum_safe ? (<span className="quantum-badge">
-                      🛡️ Quantum Safe
-                    </span>) : (<span className="status-info">Classical</span>)}
-                </div>
-                <div className="space-y-1.5 text-xs text-dark-400">
-                  <div className="flex justify-between">
-                    <span>Type:</span>
-                    <span className="text-dark-300 font-mono">{algo.algorithm_type}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Key Size:</span>
-                    <span className="text-dark-300 font-mono">{algo.key_size}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Security:</span>
-                    <span className="text-dark-300 font-mono">{algo.security_level}</span>
-                  </div>
-                </div>
-              </div>); })}
-          </div>
-        </framer_motion_1.motion.div>)}
-
-      {/* Recent Updates */}
-      {availableUpdates.length > 0 && (<framer_motion_1.motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="glass-card p-6">
-          <h3 className="section-title">Recent Updates</h3>
-          <p className="section-subtitle mb-4">Latest available updates from registered servers</p>
-
-          <div className="space-y-3">
-            {availableUpdates.slice(0, 5).map(function (update, idx) { return (<div key={idx} className="flex items-center justify-between bg-dark-800/50 rounded-xl p-4 border border-dark-700/50">
-                <div className="flex items-center gap-4">
-                  <div className={"w-10 h-10 rounded-xl flex items-center justify-center ".concat(update.verification.is_valid
-                    ? 'bg-green-500/15 text-green-400'
-                    : 'bg-red-500/15 text-red-400')}>
-                    {update.verification.is_valid ? (<hi2_1.HiOutlineCheckCircle size={24}/>) : (<hi2_1.HiOutlineExclamationTriangle size={24}/>)}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-dark-100">
-                      {update.manifest.manifest.package_name}
-                    </h4>
-                    <p className="text-xs text-dark-400">
-                      v{update.manifest.manifest.version} • {update.publisher_name}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {update.manifest.signatures.map(function (sig, sigIdx) { return (<span key={sigIdx} className={sig.algorithm === 'HybridEd25519MlDsa65'
-                        ? 'quantum-badge'
-                        : sig.algorithm === 'MlDsa65'
-                            ? 'quantum-badge'
-                            : 'status-info'}>
-                      {sig.algorithm === 'HybridEd25519MlDsa65'
-                        ? '🔐 Hybrid PQ'
-                        : sig.algorithm === 'MlDsa65'
-                            ? '🛡️ ML-DSA'
-                            : '🔑 Ed25519'}
-                    </span>); })}
-                  <button className="btn-primary text-sm py-1.5">Install</button>
-                </div>
-              </div>); })}
-          </div>
-        </framer_motion_1.motion.div>)}
-    </div>);
+    return ((0, jsx_runtime_1.jsxs)("div", { className: "space-y-6", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h2", { className: "text-2xl font-bold text-dark-50", children: "Dashboard" }), (0, jsx_runtime_1.jsx)("p", { className: "text-dark-400 text-sm mt-1", children: "Post-quantum secure software update management" })] }), (0, jsx_runtime_1.jsxs)("button", { onClick: handleCheckUpdates, disabled: isCheckingUpdates, className: "btn-primary flex items-center gap-2", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineArrowPath, { size: 18, className: isCheckingUpdates ? 'animate-spin' : '' }), isCheckingUpdates ? 'Checking...' : 'Check for Updates'] })] }), (0, jsx_runtime_1.jsx)("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4", children: statCards.map(function (stat, index) { return ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { delay: index * 0.1 }, className: "glass-card p-5", children: [(0, jsx_runtime_1.jsx)("div", { className: "flex items-center justify-between mb-3", children: (0, jsx_runtime_1.jsx)("div", { className: "".concat(stat.bg, " p-2.5 rounded-xl ").concat(stat.color), children: stat.icon }) }), (0, jsx_runtime_1.jsx)("div", { className: "text-3xl font-bold text-dark-50", children: stat.value }), (0, jsx_runtime_1.jsx)("div", { className: "text-sm text-dark-400 mt-1", children: stat.title })] }, stat.title)); }) }), securityInfo && ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { delay: 0.4 }, className: "glass-card p-6", children: [(0, jsx_runtime_1.jsxs)("h3", { className: "section-title flex items-center gap-2", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineShieldCheck, { size: 20, className: "text-quantum-400" }), "Supported Cryptography"] }), (0, jsx_runtime_1.jsx)("p", { className: "section-subtitle mb-4", children: "Post-quantum and classical algorithms available for signature verification" }), (0, jsx_runtime_1.jsx)("div", { className: "grid grid-cols-1 md:grid-cols-3 gap-4", children: securityInfo.supported_algorithms.map(function (algo) { return ((0, jsx_runtime_1.jsxs)("div", { className: "bg-dark-800/50 rounded-xl p-4 border border-dark-700/50", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between mb-3", children: [(0, jsx_runtime_1.jsx)("h4", { className: "font-semibold text-dark-100 text-sm", children: algo.name }), algo.quantum_safe ? ((0, jsx_runtime_1.jsx)("span", { className: "quantum-badge", children: "\uD83D\uDEE1\uFE0F Quantum Safe" })) : ((0, jsx_runtime_1.jsx)("span", { className: "status-info", children: "Classical" }))] }), (0, jsx_runtime_1.jsxs)("div", { className: "space-y-1.5 text-xs text-dark-400", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex justify-between", children: [(0, jsx_runtime_1.jsx)("span", { children: "Type:" }), (0, jsx_runtime_1.jsx)("span", { className: "text-dark-300 font-mono", children: algo.algorithm_type })] }), (0, jsx_runtime_1.jsxs)("div", { className: "flex justify-between", children: [(0, jsx_runtime_1.jsx)("span", { children: "Key Size:" }), (0, jsx_runtime_1.jsx)("span", { className: "text-dark-300 font-mono", children: algo.key_size })] }), (0, jsx_runtime_1.jsxs)("div", { className: "flex justify-between", children: [(0, jsx_runtime_1.jsx)("span", { children: "Security:" }), (0, jsx_runtime_1.jsx)("span", { className: "text-dark-300 font-mono", children: algo.security_level })] })] })] }, algo.name)); }) })] })), availableUpdates.length > 0 && ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { delay: 0.5 }, className: "glass-card p-6", children: [(0, jsx_runtime_1.jsx)("h3", { className: "section-title", children: "Recent Updates" }), (0, jsx_runtime_1.jsx)("p", { className: "section-subtitle mb-4", children: "Latest available updates from registered servers" }), (0, jsx_runtime_1.jsx)("div", { className: "space-y-3", children: availableUpdates.slice(0, 5).map(function (update, idx) { return ((0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between bg-dark-800/50 rounded-xl p-4 border border-dark-700/50", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center gap-4", children: [(0, jsx_runtime_1.jsx)("div", { className: "w-10 h-10 rounded-xl flex items-center justify-center ".concat(update.verification.is_valid
+                                                ? 'bg-green-500/15 text-green-400'
+                                                : 'bg-red-500/15 text-red-400'), children: update.verification.is_valid ? ((0, jsx_runtime_1.jsx)(hi2_1.HiOutlineCheckCircle, { size: 24 })) : ((0, jsx_runtime_1.jsx)(hi2_1.HiOutlineExclamationTriangle, { size: 24 })) }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h4", { className: "font-semibold text-dark-100", children: update.manifest.manifest.package_name }), (0, jsx_runtime_1.jsxs)("p", { className: "text-xs text-dark-400", children: ["v", update.manifest.manifest.version, " \u2022 ", update.publisher_name] })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "flex items-center gap-3", children: [update.manifest.signatures.map(function (sig, sigIdx) { return ((0, jsx_runtime_1.jsx)("span", { className: sig.algorithm === 'HybridEd25519MlDsa65'
+                                                ? 'quantum-badge'
+                                                : sig.algorithm === 'MlDsa65'
+                                                    ? 'quantum-badge'
+                                                    : 'status-info', children: sig.algorithm === 'HybridEd25519MlDsa65'
+                                                ? '🔐 Hybrid PQ'
+                                                : sig.algorithm === 'MlDsa65'
+                                                    ? '🛡️ ML-DSA'
+                                                    : '🔑 Ed25519' }, sigIdx)); }), (0, jsx_runtime_1.jsx)("button", { className: "btn-primary text-sm py-1.5", children: "Install" })] })] }, idx)); }) })] }))] }));
 };
 exports.default = Dashboard;

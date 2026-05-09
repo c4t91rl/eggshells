@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var react_1 = require("react");
+var jsx_runtime_1 = require("react/jsx-runtime");
 var VerificationBadge = function (_a) {
     var algorithm = _a.algorithm, _b = _a.className, className = _b === void 0 ? '' : _b;
     var getConfig = function () {
@@ -29,8 +29,6 @@ var VerificationBadge = function (_a) {
         }
     };
     var config = getConfig();
-    return (<span className={"".concat(config.className, " ").concat(className)} title={config.tooltip}>
-      {config.icon} {config.label}
-    </span>);
+    return ((0, jsx_runtime_1.jsxs)("span", { className: "".concat(config.className, " ").concat(className), title: config.tooltip, children: [config.icon, " ", config.label] }));
 };
 exports.default = VerificationBadge;

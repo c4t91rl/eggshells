@@ -1,0 +1,14 @@
+
+
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "#types/*": ["./src/types/*"],
+      "#types": ["./src/types/index.ts"]
+    }
+  }
+
+}

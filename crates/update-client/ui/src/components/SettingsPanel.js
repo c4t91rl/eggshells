@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var jsx_runtime_1 = require("react/jsx-runtime");
 var react_1 = require("react");
 var hi2_1 = require("react-icons/hi2");
 var SettingsPanel = function () {
@@ -7,112 +8,6 @@ var SettingsPanel = function () {
     var _b = (0, react_1.useState)(true), requirePQ = _b[0], setRequirePQ = _b[1];
     var _c = (0, react_1.useState)(false), allowDowngrade = _c[0], setAllowDowngrade = _c[1];
     var _d = (0, react_1.useState)('3600'), checkInterval = _d[0], setCheckInterval = _d[1];
-    return (<div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-dark-50">Settings</h2>
-        <p className="text-dark-400 text-sm mt-1">
-          Configure security preferences and update behavior
-        </p>
-      </div>
-
-      {/* Update Settings */}
-      <div className="glass-card p-6">
-        <h3 className="section-title flex items-center gap-2 mb-4">
-          <hi2_1.HiOutlineCog6Tooth size={20} className="text-primary-400"/>
-          Update Preferences
-        </h3>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-dark-800/50 rounded-xl">
-            <div>
-              <h4 className="font-medium text-dark-100">Auto-Check for Updates</h4>
-              <p className="text-xs text-dark-400 mt-1">
-                Periodically check registered servers for new updates
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" checked={autoCheck} onChange={function (e) { return setAutoCheck(e.target.checked); }} className="sr-only peer"/>
-              <div className="w-11 h-6 bg-dark-600 rounded-full peer peer-checked:bg-primary-600 
-                              peer-checked:after:translate-x-full after:content-[''] after:absolute 
-                              after:top-0.5 after:left-[2px] after:bg-white after:rounded-full 
-                              after:h-5 after:w-5 after:transition-all"/>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-dark-800/50 rounded-xl">
-            <div>
-              <h4 className="font-medium text-dark-100">Check Interval</h4>
-              <p className="text-xs text-dark-400 mt-1">
-                How often to check for updates (in seconds)
-              </p>
-            </div>
-            <select value={checkInterval} onChange={function (e) { return setCheckInterval(e.target.value); }} className="bg-dark-700 border border-dark-600 rounded-lg px-3 py-1.5 text-sm text-dark-200">
-              <option value="1800">Every 30 minutes</option>
-              <option value="3600">Every hour</option>
-              <option value="21600">Every 6 hours</option>
-              <option value="86400">Daily</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Security Settings */}
-      <div className="glass-card p-6">
-        <h3 className="section-title flex items-center gap-2 mb-4">
-          <hi2_1.HiOutlineShieldCheck size={20} className="text-quantum-400"/>
-          Security Policy
-        </h3>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-dark-800/50 rounded-xl">
-            <div>
-              <h4 className="font-medium text-dark-100">Require Post-Quantum Signatures</h4>
-              <p className="text-xs text-dark-400 mt-1">
-                Only accept updates signed with ML-DSA-65 or Hybrid algorithms
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" checked={requirePQ} onChange={function (e) { return setRequirePQ(e.target.checked); }} className="sr-only peer"/>
-              <div className="w-11 h-6 bg-dark-600 rounded-full peer peer-checked:bg-quantum-600 
-                              peer-checked:after:translate-x-full after:content-[''] after:absolute 
-                              after:top-0.5 after:left-[2px] after:bg-white after:rounded-full 
-                              after:h-5 after:w-5 after:transition-all"/>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-dark-800/50 rounded-xl">
-            <div>
-              <h4 className="font-medium text-dark-100">Allow Downgrade</h4>
-              <p className="text-xs text-dark-400 mt-1">
-                Allow installing older versions of packages (security risk)
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" checked={allowDowngrade} onChange={function (e) { return setAllowDowngrade(e.target.checked); }} className="sr-only peer"/>
-              <div className="w-11 h-6 bg-dark-600 rounded-full peer peer-checked:bg-red-600 
-                              peer-checked:after:translate-x-full after:content-[''] after:absolute 
-                              after:top-0.5 after:left-[2px] after:bg-white after:rounded-full 
-                              after:h-5 after:w-5 after:transition-all"/>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* About */}
-      <div className="glass-card p-6">
-        <h3 className="section-title mb-4">About KryptoUpdate</h3>
-        <div className="space-y-2 text-sm text-dark-400">
-          <p><strong className="text-dark-200">Version:</strong> 0.1.0-alpha</p>
-          <p><strong className="text-dark-200">Framework:</strong> Tauri 2 + React + Rust</p>
-          <p><strong className="text-dark-200">PQ Library:</strong> pqcrypto-dilithium (Dilithium3 / ML-DSA-65)</p>
-          <p><strong className="text-dark-200">Classical:</strong> ed25519-dalek</p>
-          <p><strong className="text-dark-200">Hashing:</strong> SHA3 (sha3 crate) + BLAKE3</p>
-          <p><strong className="text-dark-200">Platform:</strong> Linux / Windows (cross-platform)</p>
-          <p className="mt-3 text-dark-500">
-            Built for Kościuszkon 2026 – Honeywell Theme #1
-          </p>
-        </div>
-      </div>
-    </div>);
+    return ((0, jsx_runtime_1.jsxs)("div", { className: "space-y-6", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h2", { className: "text-2xl font-bold text-dark-50", children: "Settings" }), (0, jsx_runtime_1.jsx)("p", { className: "text-dark-400 text-sm mt-1", children: "Configure security preferences and update behavior" })] }), (0, jsx_runtime_1.jsxs)("div", { className: "glass-card p-6", children: [(0, jsx_runtime_1.jsxs)("h3", { className: "section-title flex items-center gap-2 mb-4", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineCog6Tooth, { size: 20, className: "text-primary-400" }), "Update Preferences"] }), (0, jsx_runtime_1.jsxs)("div", { className: "space-y-4", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between p-4 bg-dark-800/50 rounded-xl", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h4", { className: "font-medium text-dark-100", children: "Auto-Check for Updates" }), (0, jsx_runtime_1.jsx)("p", { className: "text-xs text-dark-400 mt-1", children: "Periodically check registered servers for new updates" })] }), (0, jsx_runtime_1.jsxs)("label", { className: "relative inline-flex items-center cursor-pointer", children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: autoCheck, onChange: function (e) { return setAutoCheck(e.target.checked); }, className: "sr-only peer" }), (0, jsx_runtime_1.jsx)("div", { className: "w-11 h-6 bg-dark-600 rounded-full peer peer-checked:bg-primary-600 \n                              peer-checked:after:translate-x-full after:content-[''] after:absolute \n                              after:top-0.5 after:left-[2px] after:bg-white after:rounded-full \n                              after:h-5 after:w-5 after:transition-all" })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between p-4 bg-dark-800/50 rounded-xl", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h4", { className: "font-medium text-dark-100", children: "Check Interval" }), (0, jsx_runtime_1.jsx)("p", { className: "text-xs text-dark-400 mt-1", children: "How often to check for updates (in seconds)" })] }), (0, jsx_runtime_1.jsxs)("select", { value: checkInterval, onChange: function (e) { return setCheckInterval(e.target.value); }, className: "bg-dark-700 border border-dark-600 rounded-lg px-3 py-1.5 text-sm text-dark-200", children: [(0, jsx_runtime_1.jsx)("option", { value: "1800", children: "Every 30 minutes" }), (0, jsx_runtime_1.jsx)("option", { value: "3600", children: "Every hour" }), (0, jsx_runtime_1.jsx)("option", { value: "21600", children: "Every 6 hours" }), (0, jsx_runtime_1.jsx)("option", { value: "86400", children: "Daily" })] })] })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "glass-card p-6", children: [(0, jsx_runtime_1.jsxs)("h3", { className: "section-title flex items-center gap-2 mb-4", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineShieldCheck, { size: 20, className: "text-quantum-400" }), "Security Policy"] }), (0, jsx_runtime_1.jsxs)("div", { className: "space-y-4", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between p-4 bg-dark-800/50 rounded-xl", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h4", { className: "font-medium text-dark-100", children: "Require Post-Quantum Signatures" }), (0, jsx_runtime_1.jsx)("p", { className: "text-xs text-dark-400 mt-1", children: "Only accept updates signed with ML-DSA-65 or Hybrid algorithms" })] }), (0, jsx_runtime_1.jsxs)("label", { className: "relative inline-flex items-center cursor-pointer", children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: requirePQ, onChange: function (e) { return setRequirePQ(e.target.checked); }, className: "sr-only peer" }), (0, jsx_runtime_1.jsx)("div", { className: "w-11 h-6 bg-dark-600 rounded-full peer peer-checked:bg-quantum-600 \n                              peer-checked:after:translate-x-full after:content-[''] after:absolute \n                              after:top-0.5 after:left-[2px] after:bg-white after:rounded-full \n                              after:h-5 after:w-5 after:transition-all" })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between p-4 bg-dark-800/50 rounded-xl", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h4", { className: "font-medium text-dark-100", children: "Allow Downgrade" }), (0, jsx_runtime_1.jsx)("p", { className: "text-xs text-dark-400 mt-1", children: "Allow installing older versions of packages (security risk)" })] }), (0, jsx_runtime_1.jsxs)("label", { className: "relative inline-flex items-center cursor-pointer", children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: allowDowngrade, onChange: function (e) { return setAllowDowngrade(e.target.checked); }, className: "sr-only peer" }), (0, jsx_runtime_1.jsx)("div", { className: "w-11 h-6 bg-dark-600 rounded-full peer peer-checked:bg-red-600 \n                              peer-checked:after:translate-x-full after:content-[''] after:absolute \n                              after:top-0.5 after:left-[2px] after:bg-white after:rounded-full \n                              after:h-5 after:w-5 after:transition-all" })] })] })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "glass-card p-6", children: [(0, jsx_runtime_1.jsx)("h3", { className: "section-title mb-4", children: "About KryptoUpdate" }), (0, jsx_runtime_1.jsxs)("div", { className: "space-y-2 text-sm text-dark-400", children: [(0, jsx_runtime_1.jsxs)("p", { children: [(0, jsx_runtime_1.jsx)("strong", { className: "text-dark-200", children: "Version:" }), " 0.1.0-alpha"] }), (0, jsx_runtime_1.jsxs)("p", { children: [(0, jsx_runtime_1.jsx)("strong", { className: "text-dark-200", children: "Framework:" }), " Tauri 2 + React + Rust"] }), (0, jsx_runtime_1.jsxs)("p", { children: [(0, jsx_runtime_1.jsx)("strong", { className: "text-dark-200", children: "PQ Library:" }), " pqcrypto-dilithium (Dilithium3 / ML-DSA-65)"] }), (0, jsx_runtime_1.jsxs)("p", { children: [(0, jsx_runtime_1.jsx)("strong", { className: "text-dark-200", children: "Classical:" }), " ed25519-dalek"] }), (0, jsx_runtime_1.jsxs)("p", { children: [(0, jsx_runtime_1.jsx)("strong", { className: "text-dark-200", children: "Hashing:" }), " SHA3 (sha3 crate) + BLAKE3"] }), (0, jsx_runtime_1.jsxs)("p", { children: [(0, jsx_runtime_1.jsx)("strong", { className: "text-dark-200", children: "Platform:" }), " Linux / Windows (cross-platform)"] }), (0, jsx_runtime_1.jsx)("p", { className: "mt-3 text-dark-500", children: "Built for Ko\u015Bciuszkon 2026 \u2013 Honeywell Theme #1" })] })] })] }));
 };
 exports.default = SettingsPanel;

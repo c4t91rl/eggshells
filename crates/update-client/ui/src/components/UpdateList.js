@@ -35,11 +35,14 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-var react_1 = require("react");
+var jsx_runtime_1 = require("react/jsx-runtime");
 var appStore_1 = require("../store/appStore");
 var tauriApi_1 = require("../utils/tauriApi");
-var UpdateCard_1 = require("./UpdateCard");
+var UpdateCard_1 = __importDefault(require("./UpdateCard"));
 var hi2_1 = require("react-icons/hi2");
 var UpdateList = function () {
     var _a = (0, appStore_1.useAppStore)(), availableUpdates = _a.availableUpdates, setAvailableUpdates = _a.setAvailableUpdates, isCheckingUpdates = _a.isCheckingUpdates, setCheckingUpdates = _a.setCheckingUpdates, addLog = _a.addLog;
@@ -71,47 +74,6 @@ var UpdateList = function () {
     }); };
     var verifiedUpdates = availableUpdates.filter(function (u) { return u.verification.is_valid; });
     var unverifiedUpdates = availableUpdates.filter(function (u) { return !u.verification.is_valid; });
-    return (<div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-dark-50">Available Updates</h2>
-          <p className="text-dark-400 text-sm mt-1">
-            {availableUpdates.length} update(s) found across all servers
-          </p>
-        </div>
-        <button onClick={handleRefresh} disabled={isCheckingUpdates} className="btn-secondary flex items-center gap-2">
-          <hi2_1.HiOutlineArrowPath size={18} className={isCheckingUpdates ? 'animate-spin' : ''}/>
-          Refresh
-        </button>
-      </div>
-
-      {/* Verified Updates */}
-      {verifiedUpdates.length > 0 && (<div>
-          <h3 className="text-sm font-semibold text-green-400 mb-3 flex items-center gap-2">
-            ✅ Verified Updates ({verifiedUpdates.length})
-          </h3>
-          <div className="space-y-3">
-            {verifiedUpdates.map(function (update, idx) { return (<UpdateCard_1.default key={idx} update={update}/>); })}
-          </div>
-        </div>)}
-
-      {/* Unverified Updates */}
-      {unverifiedUpdates.length > 0 && (<div>
-          <h3 className="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">
-            ⚠️ Unverified Updates ({unverifiedUpdates.length})
-          </h3>
-          <div className="space-y-3">
-            {unverifiedUpdates.map(function (update, idx) { return (<UpdateCard_1.default key={idx} update={update}/>); })}
-          </div>
-        </div>)}
-
-      {availableUpdates.length === 0 && (<div className="glass-card p-12 text-center">
-          <hi2_1.HiOutlineInboxArrowDown size={48} className="text-dark-600 mx-auto mb-4"/>
-          <h3 className="text-lg font-semibold text-dark-300">No Updates Available</h3>
-          <p className="text-dark-500 text-sm mt-2">
-            All software is up to date, or no servers are configured.
-          </p>
-        </div>)}
-    </div>);
+    return ((0, jsx_runtime_1.jsxs)("div", { className: "space-y-6", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h2", { className: "text-2xl font-bold text-dark-50", children: "Available Updates" }), (0, jsx_runtime_1.jsxs)("p", { className: "text-dark-400 text-sm mt-1", children: [availableUpdates.length, " update(s) found across all servers"] })] }), (0, jsx_runtime_1.jsxs)("button", { onClick: handleRefresh, disabled: isCheckingUpdates, className: "btn-secondary flex items-center gap-2", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineArrowPath, { size: 18, className: isCheckingUpdates ? 'animate-spin' : '' }), "Refresh"] })] }), verifiedUpdates.length > 0 && ((0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsxs)("h3", { className: "text-sm font-semibold text-green-400 mb-3 flex items-center gap-2", children: ["\u2705 Verified Updates (", verifiedUpdates.length, ")"] }), (0, jsx_runtime_1.jsx)("div", { className: "space-y-3", children: verifiedUpdates.map(function (update, idx) { return ((0, jsx_runtime_1.jsx)(UpdateCard_1.default, { update: update }, idx)); }) })] })), unverifiedUpdates.length > 0 && ((0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsxs)("h3", { className: "text-sm font-semibold text-red-400 mb-3 flex items-center gap-2", children: ["\u26A0\uFE0F Unverified Updates (", unverifiedUpdates.length, ")"] }), (0, jsx_runtime_1.jsx)("div", { className: "space-y-3", children: unverifiedUpdates.map(function (update, idx) { return ((0, jsx_runtime_1.jsx)(UpdateCard_1.default, { update: update }, idx)); }) })] })), availableUpdates.length === 0 && ((0, jsx_runtime_1.jsxs)("div", { className: "glass-card p-12 text-center", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineInboxArrowDown, { size: 48, className: "text-dark-600 mx-auto mb-4" }), (0, jsx_runtime_1.jsx)("h3", { className: "text-lg font-semibold text-dark-300", children: "No Updates Available" }), (0, jsx_runtime_1.jsx)("p", { className: "text-dark-500 text-sm mt-2", children: "All software is up to date, or no servers are configured." })] }))] }));
 };
 exports.default = UpdateList;

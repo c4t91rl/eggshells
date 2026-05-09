@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var react_1 = require("react");
+var jsx_runtime_1 = require("react/jsx-runtime");
 var appStore_1 = require("../store/appStore");
 var tauriApi_1 = require("../utils/tauriApi");
 var hi2_1 = require("react-icons/hi2");
@@ -70,152 +70,40 @@ var SecurityStatus = function () {
         Compromised: { bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/20' },
         Unknown: { bg: 'bg-gray-500/15', text: 'text-gray-400', border: 'border-gray-500/20' },
     };
-    return (<div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-dark-50">Security Status</h2>
-          <p className="text-dark-400 text-sm mt-1">
-            System integrity, cryptographic capabilities, and threat analysis
-          </p>
-        </div>
-        <button onClick={handleRefreshIntegrity} className="btn-secondary flex items-center gap-2">
-          <hi2_1.HiOutlineArrowPath size={18}/>
-          Re-check Integrity
-        </button>
-      </div>
-
-      {/* Overall Status */}
-      {integrityReport && (<framer_motion_1.motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={"glass-card p-6 border-2 ".concat((_a = statusColors[integrityReport.overall_status]) === null || _a === void 0 ? void 0 : _a.border)}>
-          <div className="flex items-center gap-4">
-            <div className={"p-3 rounded-2xl ".concat((_b = statusColors[integrityReport.overall_status]) === null || _b === void 0 ? void 0 : _b.bg)}>
-              {integrityReport.overall_status === 'Ok' ? (<hi2_1.HiOutlineShieldCheck size={40} className="text-green-400"/>) : (<hi2_1.HiOutlineShieldExclamation size={40} className="text-yellow-400"/>)}
-            </div>
-            <div>
-              <h3 className={"text-2xl font-bold ".concat((_c = statusColors[integrityReport.overall_status]) === null || _c === void 0 ? void 0 : _c.text)}>
-                System {integrityReport.overall_status}
-              </h3>
-              <p className="text-dark-400 text-sm">
-                Last checked: {new Date(integrityReport.timestamp).toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </framer_motion_1.motion.div>)}
-
-      {/* Integrity Checks */}
-      {integrityReport && (<framer_motion_1.motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-6">
-          <h3 className="section-title flex items-center gap-2 mb-4">
-            <hi2_1.HiOutlineFingerPrint size={20} className="text-primary-400"/>
-            Integrity Checks
-          </h3>
-
-          <div className="space-y-3">
-            {integrityReport.checks.map(function (check, idx) {
-                var colors = statusColors[check.status];
-                return (<div key={idx} className={"flex items-center justify-between p-4 rounded-xl border ".concat(colors === null || colors === void 0 ? void 0 : colors.border, " ").concat(colors === null || colors === void 0 ? void 0 : colors.bg)}>
-                  <div className="flex items-center gap-3">
-                    <span className={"text-lg ".concat(colors === null || colors === void 0 ? void 0 : colors.text)}>
-                      {check.status === 'Ok' ? '✓' : check.status === 'Warning' ? '⚠' : '✗'}
-                    </span>
-                    <div>
-                      <h4 className="font-medium text-dark-100">{check.component}</h4>
-                      <p className="text-xs text-dark-400 mt-0.5 font-mono">{check.details}</p>
-                    </div>
-                  </div>
-                  <span className={"text-sm font-medium ".concat(colors === null || colors === void 0 ? void 0 : colors.text)}>{check.status}</span>
-                </div>);
-            })}
-          </div>
-        </framer_motion_1.motion.div>)}
-
-      {/* Cryptographic Capabilities */}
-      {securityInfo && (<framer_motion_1.motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-6">
-          <h3 className="section-title flex items-center gap-2 mb-4">
-            <hi2_1.HiOutlineLockClosed size={20} className="text-quantum-400"/>
-            Cryptographic Capabilities
-          </h3>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-dark-700/50">
-                  <th className="text-left py-3 px-4 text-dark-400 font-medium">Algorithm</th>
-                  <th className="text-left py-3 px-4 text-dark-400 font-medium">Type</th>
-                  <th className="text-left py-3 px-4 text-dark-400 font-medium">Key Size</th>
-                  <th className="text-left py-3 px-4 text-dark-400 font-medium">Security Level</th>
-                  <th className="text-left py-3 px-4 text-dark-400 font-medium">Quantum Safe</th>
-                </tr>
-              </thead>
-              <tbody>
-                {securityInfo.supported_algorithms.map(function (algo) { return (<tr key={algo.name} className="border-b border-dark-800/50 hover:bg-dark-800/30">
-                    <td className="py-3 px-4 font-semibold text-dark-100">{algo.name}</td>
-                    <td className="py-3 px-4 text-dark-300 font-mono text-xs">{algo.algorithm_type}</td>
-                    <td className="py-3 px-4 text-dark-300 font-mono text-xs">{algo.key_size}</td>
-                    <td className="py-3 px-4 text-dark-300 font-mono text-xs">{algo.security_level}</td>
-                    <td className="py-3 px-4">
-                      {algo.quantum_safe ? (<span className="quantum-badge">🛡️ Yes</span>) : (<span className="status-warning">⚠️ No</span>)}
-                    </td>
-                  </tr>); })}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-4 p-4 bg-dark-800/30 rounded-xl border border-dark-700/30">
-            <h4 className="text-sm font-semibold text-dark-300 mb-2 flex items-center gap-2">
-              <hi2_1.HiOutlineCpuChip size={16}/>
-              Hash Algorithms
-            </h4>
-            <div className="flex gap-2 flex-wrap">
-              {securityInfo.hash_algorithms.map(function (hash) { return (<span key={hash} className="status-info">
-                  {hash}
-                </span>); })}
-            </div>
-          </div>
-        </framer_motion_1.motion.div>)}
-
-      {/* Threat Model Summary */}
-      <framer_motion_1.motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-6">
-        <h3 className="section-title mb-4">Threat Model</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[
-            {
-                threat: 'Man-in-the-Middle (MITM)',
-                mitigation: 'TLS + Digital Signatures',
-                status: 'Mitigated',
-            },
-            {
-                threat: 'Package Tampering',
-                mitigation: 'Cryptographic hash verification (BLAKE3/SHA3)',
-                status: 'Mitigated',
-            },
-            {
-                threat: 'Signature Forgery',
-                mitigation: 'Hybrid PQ signatures (Ed25519 + ML-DSA-65)',
-                status: 'Mitigated',
-            },
-            {
-                threat: 'Downgrade Attack',
-                mitigation: 'Version chain tracking & minimum version',
-                status: 'Mitigated',
-            },
-            {
-                threat: 'Key Compromise',
-                mitigation: 'Key revocation, multiple signatures',
-                status: 'Partially Mitigated',
-            },
-            {
-                threat: 'Quantum Attack',
-                mitigation: 'Post-quantum ML-DSA-65 (Dilithium3)',
-                status: 'Mitigated',
-            },
-        ].map(function (item, idx) { return (<div key={idx} className="bg-dark-800/50 p-4 rounded-xl border border-dark-700/30">
-              <h4 className="font-semibold text-dark-200 text-sm mb-1">{item.threat}</h4>
-              <p className="text-xs text-dark-400 mb-2">{item.mitigation}</p>
-              <span className={item.status === 'Mitigated' ? 'status-ok' : 'status-warning'}>
-                {item.status}
-              </span>
-            </div>); })}
-        </div>
-      </framer_motion_1.motion.div>
-    </div>);
+    return ((0, jsx_runtime_1.jsxs)("div", { className: "space-y-6", children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h2", { className: "text-2xl font-bold text-dark-50", children: "Security Status" }), (0, jsx_runtime_1.jsx)("p", { className: "text-dark-400 text-sm mt-1", children: "System integrity, cryptographic capabilities, and threat analysis" })] }), (0, jsx_runtime_1.jsxs)("button", { onClick: handleRefreshIntegrity, className: "btn-secondary flex items-center gap-2", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineArrowPath, { size: 18 }), "Re-check Integrity"] })] }), integrityReport && ((0, jsx_runtime_1.jsx)(framer_motion_1.motion.div, { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, className: "glass-card p-6 border-2 ".concat((_a = statusColors[integrityReport.overall_status]) === null || _a === void 0 ? void 0 : _a.border), children: (0, jsx_runtime_1.jsxs)("div", { className: "flex items-center gap-4", children: [(0, jsx_runtime_1.jsx)("div", { className: "p-3 rounded-2xl ".concat((_b = statusColors[integrityReport.overall_status]) === null || _b === void 0 ? void 0 : _b.bg), children: integrityReport.overall_status === 'Ok' ? ((0, jsx_runtime_1.jsx)(hi2_1.HiOutlineShieldCheck, { size: 40, className: "text-green-400" })) : ((0, jsx_runtime_1.jsx)(hi2_1.HiOutlineShieldExclamation, { size: 40, className: "text-yellow-400" })) }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsxs)("h3", { className: "text-2xl font-bold ".concat((_c = statusColors[integrityReport.overall_status]) === null || _c === void 0 ? void 0 : _c.text), children: ["System ", integrityReport.overall_status] }), (0, jsx_runtime_1.jsxs)("p", { className: "text-dark-400 text-sm", children: ["Last checked: ", new Date(integrityReport.timestamp).toLocaleString()] })] })] }) })), integrityReport && ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { delay: 0.1 }, className: "glass-card p-6", children: [(0, jsx_runtime_1.jsxs)("h3", { className: "section-title flex items-center gap-2 mb-4", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineFingerPrint, { size: 20, className: "text-primary-400" }), "Integrity Checks"] }), (0, jsx_runtime_1.jsx)("div", { className: "space-y-3", children: integrityReport.checks.map(function (check, idx) {
+                            var colors = statusColors[check.status];
+                            return ((0, jsx_runtime_1.jsxs)("div", { className: "flex items-center justify-between p-4 rounded-xl border ".concat(colors === null || colors === void 0 ? void 0 : colors.border, " ").concat(colors === null || colors === void 0 ? void 0 : colors.bg), children: [(0, jsx_runtime_1.jsxs)("div", { className: "flex items-center gap-3", children: [(0, jsx_runtime_1.jsx)("span", { className: "text-lg ".concat(colors === null || colors === void 0 ? void 0 : colors.text), children: check.status === 'Ok' ? '✓' : check.status === 'Warning' ? '⚠' : '✗' }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h4", { className: "font-medium text-dark-100", children: check.component }), (0, jsx_runtime_1.jsx)("p", { className: "text-xs text-dark-400 mt-0.5 font-mono", children: check.details })] })] }), (0, jsx_runtime_1.jsx)("span", { className: "text-sm font-medium ".concat(colors === null || colors === void 0 ? void 0 : colors.text), children: check.status })] }, idx));
+                        }) })] })), securityInfo && ((0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { delay: 0.2 }, className: "glass-card p-6", children: [(0, jsx_runtime_1.jsxs)("h3", { className: "section-title flex items-center gap-2 mb-4", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineLockClosed, { size: 20, className: "text-quantum-400" }), "Cryptographic Capabilities"] }), (0, jsx_runtime_1.jsx)("div", { className: "overflow-x-auto", children: (0, jsx_runtime_1.jsxs)("table", { className: "w-full text-sm", children: [(0, jsx_runtime_1.jsx)("thead", { children: (0, jsx_runtime_1.jsxs)("tr", { className: "border-b border-dark-700/50", children: [(0, jsx_runtime_1.jsx)("th", { className: "text-left py-3 px-4 text-dark-400 font-medium", children: "Algorithm" }), (0, jsx_runtime_1.jsx)("th", { className: "text-left py-3 px-4 text-dark-400 font-medium", children: "Type" }), (0, jsx_runtime_1.jsx)("th", { className: "text-left py-3 px-4 text-dark-400 font-medium", children: "Key Size" }), (0, jsx_runtime_1.jsx)("th", { className: "text-left py-3 px-4 text-dark-400 font-medium", children: "Security Level" }), (0, jsx_runtime_1.jsx)("th", { className: "text-left py-3 px-4 text-dark-400 font-medium", children: "Quantum Safe" })] }) }), (0, jsx_runtime_1.jsx)("tbody", { children: securityInfo.supported_algorithms.map(function (algo) { return ((0, jsx_runtime_1.jsxs)("tr", { className: "border-b border-dark-800/50 hover:bg-dark-800/30", children: [(0, jsx_runtime_1.jsx)("td", { className: "py-3 px-4 font-semibold text-dark-100", children: algo.name }), (0, jsx_runtime_1.jsx)("td", { className: "py-3 px-4 text-dark-300 font-mono text-xs", children: algo.algorithm_type }), (0, jsx_runtime_1.jsx)("td", { className: "py-3 px-4 text-dark-300 font-mono text-xs", children: algo.key_size }), (0, jsx_runtime_1.jsx)("td", { className: "py-3 px-4 text-dark-300 font-mono text-xs", children: algo.security_level }), (0, jsx_runtime_1.jsx)("td", { className: "py-3 px-4", children: algo.quantum_safe ? ((0, jsx_runtime_1.jsx)("span", { className: "quantum-badge", children: "\uD83D\uDEE1\uFE0F Yes" })) : ((0, jsx_runtime_1.jsx)("span", { className: "status-warning", children: "\u26A0\uFE0F No" })) })] }, algo.name)); }) })] }) }), (0, jsx_runtime_1.jsxs)("div", { className: "mt-4 p-4 bg-dark-800/30 rounded-xl border border-dark-700/30", children: [(0, jsx_runtime_1.jsxs)("h4", { className: "text-sm font-semibold text-dark-300 mb-2 flex items-center gap-2", children: [(0, jsx_runtime_1.jsx)(hi2_1.HiOutlineCpuChip, { size: 16 }), "Hash Algorithms"] }), (0, jsx_runtime_1.jsx)("div", { className: "flex gap-2 flex-wrap", children: securityInfo.hash_algorithms.map(function (hash) { return ((0, jsx_runtime_1.jsx)("span", { className: "status-info", children: hash }, hash)); }) })] })] })), (0, jsx_runtime_1.jsxs)(framer_motion_1.motion.div, { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { delay: 0.3 }, className: "glass-card p-6", children: [(0, jsx_runtime_1.jsx)("h3", { className: "section-title mb-4", children: "Threat Model" }), (0, jsx_runtime_1.jsx)("div", { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", children: [
+                            {
+                                threat: 'Man-in-the-Middle (MITM)',
+                                mitigation: 'TLS + Digital Signatures',
+                                status: 'Mitigated',
+                            },
+                            {
+                                threat: 'Package Tampering',
+                                mitigation: 'Cryptographic hash verification (BLAKE3/SHA3)',
+                                status: 'Mitigated',
+                            },
+                            {
+                                threat: 'Signature Forgery',
+                                mitigation: 'Hybrid PQ signatures (Ed25519 + ML-DSA-65)',
+                                status: 'Mitigated',
+                            },
+                            {
+                                threat: 'Downgrade Attack',
+                                mitigation: 'Version chain tracking & minimum version',
+                                status: 'Mitigated',
+                            },
+                            {
+                                threat: 'Key Compromise',
+                                mitigation: 'Key revocation, multiple signatures',
+                                status: 'Partially Mitigated',
+                            },
+                            {
+                                threat: 'Quantum Attack',
+                                mitigation: 'Post-quantum ML-DSA-65 (Dilithium3)',
+                                status: 'Mitigated',
+                            },
+                        ].map(function (item, idx) { return ((0, jsx_runtime_1.jsxs)("div", { className: "bg-dark-800/50 p-4 rounded-xl border border-dark-700/30", children: [(0, jsx_runtime_1.jsx)("h4", { className: "font-semibold text-dark-200 text-sm mb-1", children: item.threat }), (0, jsx_runtime_1.jsx)("p", { className: "text-xs text-dark-400 mb-2", children: item.mitigation }), (0, jsx_runtime_1.jsx)("span", { className: item.status === 'Mitigated' ? 'status-ok' : 'status-warning', children: item.status })] }, idx)); }) })] })] }));
 };
 exports.default = SecurityStatus;
