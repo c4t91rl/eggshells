@@ -70,6 +70,8 @@
 ## Kluczowe scenariusze ataków
 
 ### Scenariusz 1: MITM Attack
+
+```
 Klient              Atakujący (MITM)             Serwer
     │                        │                        │
     │   Wysyła pakiet        │                        │
@@ -91,6 +93,7 @@ Klient              Atakujący (MITM)             Serwer
     │<────────────────────────────────────────────────┤
     │                                                 │
     │                ❌ ATAK ZABLOKOWANY              │
+```
 
 **Ochrona:** SHA3-256 hash + hybrydowe podpisy cyfrowe. Atakujący nie ma kluczy prywatnych publishera, więc nie może podpisać zmodyfikowanego pakietu.
 

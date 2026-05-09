@@ -2,6 +2,7 @@
 
 ## Przegląd
 
+```
 System składa się z trzech głównych komponentów:
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                             ARCHITEKTURA SYSTEMU                             │
@@ -36,6 +37,7 @@ System składa się z trzech głównych komponentów:
 │  └────────────────────┘                                                      │
 │                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
+```
 
 ## Komponenty
 
@@ -76,6 +78,8 @@ System składa się z trzech głównych komponentów:
 - Klucze prywatne: JSON z uprawnieniami 600 (Linux)
 
 ## Przepływ aktualizacji
+
+```
      CLIENT                                           SERVER
         │                                                │
         │─── POST /api/check/{app_id} ──────────────────►│
@@ -116,8 +120,11 @@ System składa się z trzech głównych komponentów:
   │ Oba OK? → Zastosuj aktualizację │                    │
   └─────────────────────────────────┘                    │
         │                                                │
+```
 
 ## Model wieloserwera / wielu publisherów
+
+```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      MULTI-PUBLISHER MODEL                      │
 ├─────────────────────────────────────────────────────────────────┤
@@ -158,6 +165,7 @@ System składa się z trzech głównych komponentów:
         │  2. Identify Publisher of Pkg                   │
         │  3. Verify Sig(Pkg) using corresponding Pub_Key │
         └─────────────────────────────────────────────────┘
+```
 
 ## Struktura danych SQLite
 
@@ -188,6 +196,8 @@ CREATE TABLE packages (
     changelog_json TEXT NOT NULL,
     FOREIGN KEY (publisher_id) REFERENCES publishers(id)
 );
+```
+
 Wybory technologiczne
 Decyzja	Alternatywy	Uzasadnienie
 Rust	Go, C++, Python	Memory safety, zero unsafe w naszym kodzie, cross-platform
