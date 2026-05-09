@@ -1,0 +1,15 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/crypto-core",
+    "crates/update-server",
+    "crates/update-client",
+    "tools/keygen",
+    "tools/attack-simulator",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+authors = ["KryptoUpdate Team"]
+license = "MIT"
