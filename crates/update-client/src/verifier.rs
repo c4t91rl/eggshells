@@ -183,7 +183,8 @@ impl ManifestVerifier {
                     &ed_pk, &pq_pk, &signature.key_id,
                 )?;
 
-                let hybrid_sig: HybridSignature = bincode::deserialize(&sig_bytes)
+                // Replaced bincode with serde_json (maintained)
+                let hybrid_sig: HybridSignature = serde_json::from_slice(&sig_bytes)
                     .map_err(|e| CryptoError::SerializationError(e.to_string()))?;
 
                 hybrid_key.verify(manifest_bytes, &hybrid_sig)?;
