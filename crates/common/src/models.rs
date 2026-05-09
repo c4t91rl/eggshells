@@ -6,7 +6,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
+//use uuid::Uuid;niepotrzebny import, odkomentuj jesli będzie potrzeba
 
 use crate::crypto::HybridPublicKey;
 use crate::crypto::HybridSignature;
