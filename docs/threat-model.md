@@ -110,9 +110,6 @@ offered_version = 1.0.0
 is_safe_upgrade(2.0.0 → 1.0.0) = FALSE
 ❌ ATAK ZABLOKOWANY
 
-text
-
-
 **Ochrona:** Monotonic version check – klient bezwzględnie odmawia instalacji wersji <= obecnej.
 
 ---
@@ -129,9 +126,6 @@ Ed25519: ✅ (fałszywy, ale...)
 overall = Dilithium3 AND Ed25519
 overall = TRUE AND FALSE = FALSE
 ❌ ATAK ZABLOKOWANY
-
-text
-
 
 **Ochrona:** Dilithium3 jest odporny na kwantowe ataki. Hybrid scheme wymaga OBU podpisów.
 
@@ -163,9 +157,6 @@ Ed25519: ✅ fałszywy, ale...
 
 overall = FALSE AND TRUE = FALSE
 ❌ ATAK ZABLOKOWANY
-
-text
-
 
 ## Ryzyko rezydualne
 
