@@ -1,184 +1,147 @@
 # Model Zagrożeń
 
-## Aktywa do ochrony
+## Zakres i aktywa
 
-| Aktywo | Opis | Wartość |
-|--------|------|---------|
-| Klucze prywatne publisherów | Dilithium3 + Ed25519 secret keys | Krytyczna |
-| Pakiety aktualizacji | Binarne pliki dystrybuowane do klientów | Wysoka |
-| Metadane pakietów | Wersje, hashe, podpisy | Wysoka |
-| Kanał komunikacji | HTTP między klientem a serwerem | Średnia |
-| Konfiguracja klienta | Pinned keys, server URL | Średnia |
+Ten dokument opisuje zagrożenia związane z systemem aktualizacji.
+Zakres obejmuje:
+- publikowanie pakietów i metadanych na serwerze,
+- wymianę danych między klientem a serwerem,
+- weryfikację podpisów i hashy po stronie klienta.
+
+### Aktywa
+
+| Aktywum | Opis | Waga |
+|--------|------|------|
+| Klucze prywatne publisherów | Klucze Dilithium3 + Ed25519 używane do podpisu pakietów | Krytyczna |
+| Klucze publiczne publisherów | Zaufane klucze przechowywane na serwerze i w klientach | Wysoka |
+| Metadane pakietów | SHA3-256, wersje, podpis hybrydowy | Wysoka |
+| Binarne pliki pakietów | Kod dystrybuowany do końcowych użytkowników | Wysoka |
+| Kanał komunikacji | Połączenia klient-serwer | Średnia |
+| Konfiguracja klienta | Lista serwerów, pinned keys, app_id | Średnia |
 
 ## Aktorzy zagrożeń
 
-| Aktor | Motywacja | Możliwości |
-|-------|-----------|------------|
-| Zewnętrzny atakujący | Złośliwy kod u użytkowników | Sieciowy MITM, fałszywe serwery |
-| Skompromitowany publisher | Insider threat | Dostęp do kluczy prywatnych |
-| Atakujący na serwer | Podmiana pakietów | Zapis do storage serwera |
-| Przyszłe komputery kwantowe | Złamanie kryptografii | Algorytm Shora (RSA/ECC) |
+| Aktor | Cel | Możliwości |
+|------|-----|------------|
+| Zewnętrzny atakujący | Uzyskanie nieautoryzowanego dostępu do klienta | MITM, DNS spoofing, serwer lustrzany |
+| Skompromitowany publisher | Wydanie złośliwego pakietu | Dostęp do kluczy prywatnych publishera |
+| Atakujący serwera | Modyfikacja danych lub pakietów | Zapis w filesystemie, zmiana bazy danych |
+| Atakujący sieciowy | Podsłuch transmisji | Przechwycenie pakietów HTTP |
+| Przyszły kwantowy atakujący | Łamanie tradycyjnej kryptografii | Ataki na klucze publiczne ECC/RSA |
 
-## Macierz zagrożeń (STRIDE)
+## STRIDE
 
 ### S – Spoofing (Podszywanie się)
 
-| Zagrożenie | Wektor | Mitygacja | Status |
-|---|---|---|---|
-| Fałszywy serwer aktualizacji | DNS poisoning, MITM | TLS certificate pinning (prod.) | ⚠️ Prototyp HTTP |
-| Fałszywy publisher | Kompromitacja rejestracji | Weryfikacja klucza publicznego | ✅ |
-| Podmiana kluczy publicznych | Modyfikacja bazy serwera | Key pinning po stronie klienta (TOFU) | ✅ |
+| Zagrożenie | Wektor | Mitygacja |
+|-----------|--------|----------|
+| Fałszywy serwer aktualizacji | MITM, DNS spoofing, przekierowanie ruchu | TLS w produkcji; w prototypie wymaga to dodatkowego zaufania do serwera |
+| Fałszywy publisher | Zarejestrowanie nielegalnego klucza | Rejestracja klucza przez API; weryfikacja przed publikacją |
+| Podmiana kluczy publicznych | Modyfikacja bazy serwera lub konfiguracji klienta | Key pinning kluczy publishera, walidacja TOFU |
 
 ### T – Tampering (Modyfikacja)
 
-| Zagrożenie | Wektor | Mitygacja | Status |
-|---|---|---|---|
-| Modyfikacja pakietu w tranzycie | MITM | SHA3-256 + Dilithium3 + Ed25519 | ✅ |
-| Modyfikacja pakietu na serwerze | Kompromitacja serwera | Podpisy weryfikowane przez klienta offline | ✅ |
-| Modyfikacja metadanych | Serwer lub MITM | Podpisy obejmują zawartość pakietu | ✅ |
-| Modyfikacja klienta | Tamper z exe | Self-integrity check, debugger detection | ✅ (basic) |
+| Zagrożenie | Wektor | Mitygacja |
+|-----------|--------|----------|
+| Modyfikacja pakietu w tranzycie | MITM zmienia dane binarne | SHA3-256 + hybrydowy podpis |
+| Modyfikacja pakietu na serwerze | Złośliwa zmiana pliku w storage | Klient weryfikuje hash/signature, pakiet przyjmuje się tylko po weryfikacji |
+| Modyfikacja metadanych | Zmiana hasha, wersji lub podpisu | Podpisy pakietu obejmują treść metadanych |
+| Path traversal w uploadzie | Złośliwa nazwa pliku lub app_id | Sanityzacja ścieżek i zapisywanie tylko w dozwolonych katalogach |
 
 ### R – Repudiation (Zaprzeczenie)
 
-| Zagrożenie | Wektor | Mitygacja | Status |
-|---|---|---|---|
-| Publisher zaprzecza publikacji | Brak dowodów | Podpisy kryptograficzne + timestampy | ✅ |
-| Serwer zaprzecza dystrybucji | Brak logów | Logi serwera + metadane z podpisem | ✅ |
+| Zagrożenie | Wektor | Mitygacja |
+|-----------|--------|----------|
+| Publisher odrzuca wydanie pakietu | Brak niepodważalnych dowodów | Podpisy cyfrowe z timestampami w metadanych |
+| Serwer odrzuca publikację | Brak audytu operacji | Logi serwera, metadane podpisane przez publishera |
 
 ### I – Information Disclosure (Ujawnienie informacji)
 
-| Zagrożenie | Wektor | Mitygacja | Status |
-|---|---|---|---|
-| Podsłuch komunikacji | MITM na HTTP | TLS w produkcji (HTTP w prototypie) | ⚠️ |
-| Wyciek kluczy prywatnych | Kradzież pliku | Uprawnienia 600 na Linux, ostrzeżenia | ✅ (basic) |
-| Fingerprinting klienta | Metadata w requestach | Minimalne nagłówki | ⚠️ |
+| Zagrożenie | Wektor | Mitygacja |
+|-----------|--------|----------|
+| Podsłuch komunikacji | Brak szyfrowania HTTP | TLS 1.3 w środowisku produkcyjnym |
+| Wyciek klucza prywatnego | Nieodpowiednie zabezpieczenia pliku | Uprawnienia plików, oddzielne konta, HSM w produkcji |
+| Ujawnienie konfiguracji klienta | kradzież pliku JSON | Ograniczenie uprawnień dostępu do plików |
 
 ### D – Denial of Service (Odmowa usługi)
 
-| Zagrożenie | Wektor | Mitygacja | Status |
-|---|---|---|---|
-| Flooding serwera | HTTP flood | Brak rate limitera (prototyp) | ⚠️ |
-| Ogromne pakiety | Upload attack | Brak limitu rozmiaru (prototyp) | ⚠️ |
+| Zagrożenie | Wektor | Mitygacja |
+|-----------|--------|----------|
+| Flooding API | Masowy ruch do endpointów | Rate limiting w produkcji |
+| Duże uploady | Wyczerpanie miejsca na dysku | Ograniczenia rozmiaru pliku, monitoring przestrzeni |
+| Brak dostępności bazy | Uszkodzenie lub blokada SQLite | Backup bazy, redundancja serwera |
 
 ### E – Elevation of Privilege (Eskalacja uprawnień)
 
-| Zagrożenie | Wektor | Mitygacja | Status |
-|---|---|---|---|
-| Złośliwy pakiet z rootkitem | Przejście weryfikacji | Multi-layer verification (hash + dual sig) | ✅ |
-| Path traversal w nazwach plików | Złośliwa nazwa pliku | Sanityzacja ścieżek | ✅ |
+| Zagrożenie | Wektor | Mitygacja |
+|-----------|--------|----------|
+| Kompromitacja serwera | Uruchomienie złośliwego procesu | Separacja uprawnień, konteneryzacja |
+| Niezaufana publikacja pakietu | Upload od niepowołanego publishera | Żądanie metadanych i sprawdzenie publisher_id |
 
-## Kluczowe scenariusze ataków
+## Scenariusze ataków
 
-### Scenariusz 1: MITM Attack
+### Scenariusz 1: MITM podczas pobierania aktualizacji
 
-```
-Klient              Atakujący (MITM)             Serwer
-    │                        │                        │
-    │   Wysyła pakiet        │                        │
-    │───────────────────────>│                        │
-    │                        │  Przechwytuje i        │
-    │                        │  modyfikuje pakiet     │
-    │                        │                        │
-    │                        │   Wysyła złośliwy      │
-    │                        │   pakiet do serwera    │
-    │                        └───────────────────────>│
-    │                                                 │
-    │                                       [ Weryfikacja... ]
-    │                                                 │
-    │                                       [ SHA3-256 mismatch! ]
-    │                                       [ Sig verification   ]
-    │                                       [      FAILED!       ]
-    │                                                 │
-    │             KOMUNIKAT BŁĘDU                     │
-    │<────────────────────────────────────────────────┤
-    │                                                 │
-    │                ❌ ATAK ZABLOKOWANY              │
-```
+Atakujący przechwytuje odpowiedź `GET /api/download` i modyfikuje bajty pakietu.
 
-**Ochrona:** SHA3-256 hash + hybrydowe podpisy cyfrowe. Atakujący nie ma kluczy prywatnych publishera, więc nie może podpisać zmodyfikowanego pakietu.
+- klient porównuje hash SHA3-256 z metadanych;
+- hash zmodyfikowanego pakietu nie zgadza się;
+- weryfikacja podpisów również nie przejdzie;
+- aktualizacja zostaje odrzucona.
 
----
+### Scenariusz 2: Próba downgrade'u
 
-### Scenariusz 2: Downgrade Attack
-Atakujący zmusza klienta do zainstalowania v1.0.0
-(zawierającej znany CVE) zamiast aktualnej v2.0.0.
+Atakujący oferuje starszą wersję pakietu.
 
-Klient sprawdza:
-current_version = 2.0.0
-offered_version = 1.0.0
+- klient sprawdza `SemanticVersion::is_newer_than`;
+- jeśli wersja jest równa lub niższa, to aktualizacja odrzucana;
+- blokuje to ataki typu replay i downgrade.
 
-is_safe_upgrade(2.0.0 → 1.0.0) = FALSE
-❌ ATAK ZABLOKOWANY
+### Scenariusz 3: Skompromitowany publisher
 
-**Ochrona:** Monotonic version check – klient bezwzględnie odmawia instalacji wersji <= obecnej.
+Jeżeli publisher ujawni klucz prywatny, atakujący może podpisać nowe pakiety.
 
----
+- ryzyko jest krytyczne;
+- w produkcyjnym scenariuszu należy zastosować rotację i unieważnianie kluczy,
+- oraz centralny system audytu i kontrolę dostępu.
 
-### Scenariusz 3: Quantum Computer Attack (przyszłościowy)
-Komputer kwantowy łamie Ed25519 algorytmem Shora.
+### Scenariusz 4: Oszustwo metadanych
 
-Atakujący tworzy fałszywy podpis Ed25519.
+Atakujący zmienia hash lub wersję w metadanych.
 
-Weryfikacja hybrydowa:
-Dilithium3: ✅ (atakujący nie złamał)
-Ed25519: ✅ (fałszywy, ale...)
+- klient weryfikuje hash pliku względem metadanych,
+- weryfikacja podpisu hybrydowego przeciwdziała takim modyfikacjom,
+- jeżeli metadane są zmienione bez prawidłowego podpisu, aktualizacja odrzucona.
 
-overall = Dilithium3 AND Ed25519
-overall = TRUE AND FALSE = FALSE
-❌ ATAK ZABLOKOWANY
+### Scenariusz 5: Atak przyszły kwantowy
 
-**Ochrona:** Dilithium3 jest odporny na kwantowe ataki. Hybrid scheme wymaga OBU podpisów.
+Jeżeli w przyszłości zostanie złamany Ed25519, Dilithium3 nadal zapewnia ochronę.
 
----
+- hybrydowy podpis sprawia, że złamanie jednego mechanizmu nie wystarczy,
+- system nadal wymaga ważności obydwu podpisów.
 
-### Scenariusz 4: Replay Attack
-Atakujący przechwytuje poprawnie podpisany pakiet v1.5.0
-i próbuje go ponownie dostarczyć po aktualizacji do v2.0.0.
+## Ryzyko resztualne i ograniczenia
 
-Klient sprawdza:
-current_version = 2.0.0
-replayed_version = 1.5.0
+| Ryzyko | Opis | Mitygacja |
+|-------|------|----------|
+| Kompromitacja kluczy publishera | Największe ryzyko dla autentyczności | HSM, rotacja, audyt |
+| Brak TLS w prototypie | Ujawnienie komunikacji | TLS 1.3 w produkcji |
+| Brak rate limiting | DoS, przeciążenie serwera | Middleware z ograniczeniem ruchu |
+| Brak centralnej polityki uwierzytelniania | Nieautoryzowane publikacje | API keys, uwierzytelnianie publishera |
+| Brak podpisu pliku na serwerze | Złośliwy upload | Weryfikacja uploadu i usuwanie niezgodnych plików |
 
-is_safe_upgrade(2.0.0 → 1.5.0) = FALSE
-❌ ATAK ZABLOKOWANY
+## Zalecenia produkcyjne
 
-text
+1. Wprowadzić **TLS 1.3** oraz certyfikaty dla serwera.
+2. Zapewnić **bezpieczne przechowywanie kluczy** (HSM/TPM).
+3. Dodać **rate limiting** dla krytycznych endpointów.
+4. Wprowadzić **autentykację publishera** i mechanizm unieważniania kluczy.
+5. Monitorować **logi i integrację SIEM**.
+6. Stosować **audyt publikacji** i skany integralności.
 
+## Wnioski
 
----
-
-### Scenariusz 5: Partial Signature Bypass
-Atakujący łamie Ed25519 (np. side-channel) ale nie Dilithium.
-Tworzy fałszywy podpis Ed25519 dla złośliwego pakietu.
-
-Weryfikacja hybrydowa:
-Dilithium3: ❌ FAILED (inny pakiet, inny hash)
-Ed25519: ✅ fałszywy, ale...
-
-overall = FALSE AND TRUE = FALSE
-❌ ATAK ZABLOKOWANY
-
-## Ryzyko rezydualne
-
-| Ryzyko | Prawdopodobieństwo | Wpływ | Mitygacja (produkcja) |
-|--------|-------------------|-------|----------------------|
-| Kompromitacja klucza offline | Niskie | Krytyczny | HSM / YubiKey |
-| Supply chain attack na rustc | Bardzo niskie | Krytyczny | Reproducible builds |
-| Zero-day w Dilithium | Bardzo niskie | Wysoki | Hybrid scheme (Ed25519 backup) |
-| Zero-day w Ed25519 | Bardzo niskie | Wysoki | Hybrid scheme (Dilithium backup) |
-| TOFU key pinning bypass | Niskie | Wysoki | PKI / certificate transparency |
-| HTTP (brak TLS) w prototypie | N/A (demo) | Wysoki | TLS 1.3 + cert pinning |
-
-## Ograniczenia prototypu vs produkcja
-
-| Aspekt | Prototyp | Produkcja |
-|--------|----------|-----------|
-| Transport | HTTP | TLS 1.3 + cert pinning |
-| Key storage | JSON file | HSM / YubiKey / TPM |
-| Key pinning | TOFU | PKI hierarchy |
-| Auth publishera | Brak | OAuth2 / API keys |
-| Rate limiting | Brak | Nginx / middleware |
-| Auditing | Logi konsoli | SIEM integration |
-| Rollback | Brak | Snapshot mechanism |
-| Delta updates | Brak | Binary diffing (bsdiff) |
-| Threshold sigs | Brak | k-of-n multi-publisher |
+- system opiera się na weryfikacji integralności i autentyczności po stronie klienta,
+- najważniejszymi aktywami są klucze prywatne publisherów oraz metadane pakietów,
+- hybrydowy podpis i monotoniczna weryfikacja wersji zapewniają odporność na wiele wektorów ataku,
+- istnieje jednak nadal ryzyko związane z brakiem TLS, brakiem ograniczeń uploadu oraz zarządzaniem kluczami.
