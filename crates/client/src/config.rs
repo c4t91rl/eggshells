@@ -5,7 +5,7 @@
 
 use anyhow::{Context, Result};
 use secure_update_common::*;
-use std::path::{Path, PathBuf};
+use std::path::{ PathBuf};//Path, - nieużywane
 
 const CONFIG_FILENAME: &str = "update-client-config.json";
 

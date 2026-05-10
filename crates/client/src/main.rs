@@ -42,7 +42,7 @@ fn main() -> Result<()> {
             cc.egui_ctx.set_visuals(egui::Visuals::dark());
 
             // Konfigurujemy czcionki
-            let mut fonts = egui::FontDefinitions::default();
+            let fonts = egui::FontDefinitions::default(); // mut - ponoć nie musi być
             // Można dodać custom fonty tutaj
             cc.egui_ctx.set_fonts(fonts);
 

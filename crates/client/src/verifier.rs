@@ -9,7 +9,7 @@
 //! 4. Weryfikacja podpisu Ed25519 (klasyczny)
 //! 5. Anti-downgrade check
 
-use anyhow::{Context, Result, bail};
+use anyhow::{ Result};//Context,, bail -nieużywane
 use secure_update_common::*;
 
 /// Pełna weryfikacja pakietu aktualizacji
@@ -110,7 +110,7 @@ pub struct VerificationReport {
 }
 
 impl VerificationReport {
-    pub fn summary(&self) -> String {
+    pub fn summary(&self) -> String { // <= never used
         let mut lines = Vec::new();
         lines.push(format!("═══ Verification Report ═══"));
         lines.push(format!("  File size:      {}", status_icon(self.size_check)));
@@ -141,10 +141,10 @@ impl VerificationReport {
     }
 }
 
-fn status_icon(ok: bool) -> &'static str {
+fn status_icon(ok: bool) -> &'static str { // <= it literally causes errors if i remove it, how is this supposed to be unused????
     if ok {
         "✓ PASS"
     } else {
         "✗ FAIL"
     }
-}
+} //idk czy to kiedykolwiek użyjemy

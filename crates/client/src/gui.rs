@@ -6,7 +6,7 @@
 
 use eframe::egui;
 use secure_update_common::*;
-use std::sync::{Arc, Mutex};
+//use std::sync::{ Arc, Mutex };// - nieużyte
 use crate::{config, updater, anti_tamper};
 use crate::verifier::VerificationReport;
 
@@ -126,13 +126,13 @@ impl eframe::App for UpdateApp {
                 let status_text = match &self.update_state {
                     UpdateState::UpToDate => "✅ Up to date",
                     UpdateState::Checking => "🔄 Checking for updates...",
-                    UpdateState::UpdateAvailable { version, .. } => "📦 Update available",
-                    UpdateState::Downloading { progress_percent } => "⬇️ Downloading...",
+                    UpdateState::UpdateAvailable {  .. } => "📦 Update available", // version - nieużyte
+                    UpdateState::Downloading { progress_percent:_} => "⬇️ Downloading...", //  - nieużywana
                     UpdateState::Verifying => "🔍 Verifying...",
                     UpdateState::ReadyToInstall => "✅ Ready to install",
                     UpdateState::Installing => "⚙️ Installing...",
                     UpdateState::Completed => "🎉 Update completed",
-                    UpdateState::Error { message } => "❌ Error",
+                    UpdateState::Error { message:_} => "❌ Error",// - nieużywana
                 };
                 ui.label(status_text);
 
@@ -299,7 +299,7 @@ impl UpdateApp {
                     ui.spinner();
                     ui.label("Checking...");
                 }
-                UpdateState::UpdateAvailable { version, description } => {
+                UpdateState::UpdateAvailable {description:_, version} => { // - nieużywana
                     ui.colored_label(
                         egui::Color32::YELLOW,
                         format!("📦 Version {} available", version),
