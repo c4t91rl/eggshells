@@ -1,7 +1,8 @@
 //! # Secure Update Client
 //!
 //! Klient aktualizacji z GUI (egui), cross-platform.
-//! Przy starcie wykonuje hardening checks.
+//! Przy starcie wykonuje hardening checks z weryfikacją
+//! integralności przez serwer.
 
 mod anti_tamper;
 mod config;
@@ -30,18 +31,34 @@ fn main() -> Result<()> {
         std::process::exit(1);
     }
 
-    // 2. Environment checks — ostrzeżenia (nie blokujemy,
-    //    bo LD_PRELOAD może być używany legalnie w dev)
+    // 2. Environment checks — ostrzeżenia
     let env_warnings = anti_tamper::check_environment();
     for w in &env_warnings {
         eprintln!("⚠️  SECURITY WARNING: {}", w);
     }
 
-    // 3. Self-integrity — ostrzeżenie (w prototypie)
-    //    W produkcji: porównać z hashem wkompilowanym w build time
-    if let Err(e) = anti_tamper::perform_self_integrity_check() {
-        eprintln!("⚠️  Self-integrity check failed: {}", e);
-        // Produkcja: std::process::exit(1);
+    // 3. Self-integrity z weryfikacją przez serwer
+    let cfg = config::load_or_create_config()
+        .unwrap_or_default();
+    let server_url = cfg.selected_server.clone();
+
+    eprintln!(
+        "🔍 Verifying client integrity against: {}",
+        server_url
+    );
+
+    if let Err(e) =
+        anti_tamper::perform_self_integrity_check_with_server(
+            &server_url,
+        )
+    {
+        eprintln!("❌ SECURITY: {}", e);
+        // W produkcji: std::process::exit(1);
+        // W prototypie: ostrzegamy, ale pozwalamy kontynuować
+        eprintln!(
+            "⚠️  Continuing despite integrity failure \
+             (prototype mode — would exit in production)"
+        );
     }
 
     // ── Uruchom GUI ───────────────────────────────────────────
