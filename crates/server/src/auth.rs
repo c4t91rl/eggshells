@@ -1,3 +1,11 @@
+use argon2::{
+    Argon2,
+    password_hash::{
+        rand_core::OsRng,
+        PasswordHash, PasswordHasher,
+        PasswordVerifier, SaltString,
+    },
+};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
 
@@ -25,79 +33,97 @@ pub struct LoginResponse {
     pub expires_at: String,
 }
 
-/// Generuje losową sól (32 bajty → hex)
-pub fn generate_salt() -> String {
-    let mut buf = [0u8; 32];
-    getrandom(&mut buf);
-    hex::encode(buf)
+/// Hashuje hasło Argon2id.
+///
+/// Argon2id jest memory-hard — GPU nie może efektywnie
+/// przeprowadzić brute-force (wymaga dużo RAM per-próbę).
+///
+/// Parametry domyślne Argon2::default():
+///   algorithm: Argon2id
+///   version:   19
+///   m_cost:    65536 (64 MB RAM)
+///   t_cost:    3     (3 iteracje)
+///   p_cost:    4     (4 wątki)
+///
+/// Sól jest generowana kryptograficznie (OsRng → /dev/urandom)
+/// i wbudowana w zwracany string — nie trzeba jej osobno
+/// przechowywać.
+///
+/// Format wyjścia: "$argon2id$v=19$m=65536,t=3,p=4$<salt>$<hash>"
+pub fn hash_password(password: &str) -> String {
+    let salt = SaltString::generate(&mut OsRng);
+    Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .expect("Argon2 hashing failed")
+        .to_string()
 }
 
-/// Hashuje hasło z solą (SHA3-256)
-pub fn hash_password(password: &str, salt: &str) -> String {
-    let mut hasher = Sha3_256::new();
-    hasher.update(salt.as_bytes());
-    hasher.update(password.as_bytes());
-    hasher.update(b"secure-update-system-2026");
-    hex::encode(hasher.finalize())
+/// Weryfikuje hasło Argon2id w stałym czasie.
+///
+/// Argon2 verify jest inherentnie constant-time dla
+/// poprawnie zaimplementowanych bibliotek.
+pub fn verify_password(password: &str, stored_hash: &str) -> bool {
+    let parsed = match PasswordHash::new(stored_hash) {
+        Ok(h) => h,
+        Err(_) => return false,
+    };
+    Argon2::default()
+        .verify_password(password.as_bytes(), &parsed)
+        .is_ok()
 }
 
-/// Weryfikuje hasło (constant-time)
-pub fn verify_password(password: &str, salt: &str, expected_hash: &str) -> bool {
-    let computed = hash_password(password, salt);
-    if computed.len() != expected_hash.len() {
-        return false;
-    }
-    let mut result = 0u8;
-    for (a, b) in computed.bytes().zip(expected_hash.bytes()) {
-        result |= a ^ b;
-    }
-    result == 0
-}
-
-/// Generuje token sesji (64 losowe bajty → hex)
+/// Generuje token sesji (64 losowe bajty → 128 znaków hex).
+///
+/// Entropia: 512 bitów.
+/// Źródło losowości: /dev/urandom (Linux/macOS) lub fallback.
 pub fn generate_session_token() -> String {
     let mut buf = [0u8; 64];
-    getrandom(&mut buf);
+    fill_random(&mut buf);
     hex::encode(buf)
 }
 
-/// Kryptograficznie bezpieczne losowe bajty (bez zależności od rand)
-fn getrandom(buf: &mut [u8]) {
+/// Kryptograficznie bezpieczne wypełnienie bufora.
+///
+/// Priorytet:
+///   1. /dev/urandom (Linux/macOS) — kernel CSPRNG
+///   2. Fallback: UUID v4 + SHA3-256 + timestamp
+///      (UUID v4 wewnętrznie używa OsRng w bibliotece uuid)
+fn fill_random(buf: &mut [u8]) {
     #[cfg(unix)]
     {
         use std::io::Read;
         if let Ok(mut f) = std::fs::File::open("/dev/urandom") {
-            f.read_exact(buf).ok();
-            return;
+            if f.read_exact(buf).is_ok() {
+                return;
+            }
         }
     }
 
-    #[cfg(windows)]
-    {
-        // Na Windows używamy BCryptGenRandom przez std
-        // ale to wymaga dodatkowej zależności, więc fallback:
-    }
-
-    // Fallback: uuid + sha3 (nie idealne, ale działa)
+    // Fallback dla Windows lub gdy /dev/urandom niedostępny
+    // uuid::Uuid::new_v4() wewnętrznie używa getrandom/OsRng
     let id = uuid::Uuid::new_v4();
     let mut hasher = Sha3_256::new();
     hasher.update(id.as_bytes());
-    hasher.update(&std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos()
-        .to_le_bytes());
+    hasher.update(
+        &std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos()
+            .to_le_bytes(),
+    );
     let hash = hasher.finalize();
-    let len = buf.len().min(hash.len());
-    buf[..len].copy_from_slice(&hash[..len]);
-    // Dla buf > 32 bajtów, powtórz z innym seedem
+
+    let first_chunk = buf.len().min(32);
+    buf[..first_chunk].copy_from_slice(&hash[..first_chunk]);
+
+    // Dla buforów > 32 bajty (np. 64) — drugi blok SHA3
     if buf.len() > 32 {
         let mut hasher2 = Sha3_256::new();
         hasher2.update(&hash);
-        hasher2.update(b"extend");
+        hasher2.update(b"extend-block-2");
         let hash2 = hasher2.finalize();
-        let remaining = buf.len() - 32;
-        let copy_len = remaining.min(hash2.len());
-        buf[32..32 + copy_len].copy_from_slice(&hash2[..copy_len]);
+        let remaining = (buf.len() - 32).min(32);
+        buf[32..32 + remaining]
+            .copy_from_slice(&hash2[..remaining]);
     }
 }

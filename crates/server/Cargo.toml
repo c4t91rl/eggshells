@@ -22,3 +22,9 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 
 sha3 = "0.10"
 digest = "0.10"
+
+# Argon2id dla hashowania haseł (memory-hard, odporny na GPU brute-force)
+argon2 = "0.5"
+
+# Thread-safe hashmap dla rate limitera
+dashmap = "5"
