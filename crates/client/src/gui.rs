@@ -86,7 +86,7 @@ impl UpdateApp {
             active_tab: Tab::ServersApps,
         };
 
-        app.add_log(LogLevel::Info, "🚀 Secure Update Manager started");
+        app.add_log(LogLevel::Info, "  Secure Update Manager started");
         app.add_log(LogLevel::Info, "Crypto: Dilithium3 + Ed25519 + SHA3-256");
         app
     }
@@ -236,7 +236,7 @@ impl UpdateApp {
                             }
                             Ok(report) => {
                                 if !report.overall_valid {
-                                    self.add_log(LogLevel::Error, "❌ Verification FAILED");
+                                    self.add_log(LogLevel::Error, "  Verification FAILED");
                                     for err in &report.errors {
                                         self.add_log(LogLevel::Error, err);
                                     }
@@ -247,7 +247,7 @@ impl UpdateApp {
                                     return;
                                 }
 
-                                self.add_log(LogLevel::Success, "✅ Verification PASSED");
+                                self.add_log(LogLevel::Success, "  Verification PASSED");
                                 self.update_state = UpdateState::ReadyToInstall;
                                 self.verification_report = Some(report);
                                 self.downloaded_data = Some(data);
@@ -291,7 +291,7 @@ impl UpdateApp {
                                         self.update_state = UpdateState::Completed;
                                         self.add_log(
                                             LogLevel::Success,
-                                            &format!("✅ {} v{} installed to {}", app_id_str, metadata.version, install_dir),
+                                            &format!("  {} v{} installed to {}", app_id_str, metadata.version, install_dir),
                                         );
                                     }
                                 }
@@ -311,13 +311,13 @@ impl eframe::App for UpdateApp {
         // Top nav
         egui::TopBottomPanel::top("top").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.heading("🔒 Secure Update Manager");
+                ui.heading("  Secure Update Manager");
                 ui.separator();
-                ui.selectable_value(&mut self.active_tab, Tab::ServersApps, "🌐 Apps");
-                ui.selectable_value(&mut self.active_tab, Tab::Dashboard, "📊 Dashboard");
-                ui.selectable_value(&mut self.active_tab, Tab::Security, "🛡️ Security");
-                ui.selectable_value(&mut self.active_tab, Tab::Settings, "⚙️ Settings");
-                ui.selectable_value(&mut self.active_tab, Tab::Logs, "📋 Logs");
+                ui.selectable_value(&mut self.active_tab, Tab::ServersApps, "  Apps");
+                ui.selectable_value(&mut self.active_tab, Tab::Dashboard, "  Dashboard");
+                ui.selectable_value(&mut self.active_tab, Tab::Security, "  Security");
+                ui.selectable_value(&mut self.active_tab, Tab::Settings, "  Settings");
+                ui.selectable_value(&mut self.active_tab, Tab::Logs, "  Logs");
             });
         });
 
@@ -325,19 +325,19 @@ impl eframe::App for UpdateApp {
         egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 let status = match &self.update_state {
-                    UpdateState::UpToDate => "✅ Up to date".to_string(),
-                    UpdateState::Checking => "🔄 Checking...".to_string(),
+                    UpdateState::UpToDate => "  Up to date".to_string(),
+                    UpdateState::Checking => "  Checking...".to_string(),
                     UpdateState::UpdateAvailable { version, .. } => {
-                        format!("📦 Update available: v{}", version)
+                        format!("  Update available: v{}", version)
                     }
                     UpdateState::Downloading { progress_percent } => {
-                        format!("⬇️ Downloading {:.0}%", progress_percent)
+                        format!("  Downloading {:.0}%", progress_percent)
                     }
-                    UpdateState::Verifying => "🔍 Verifying...".to_string(),
-                    UpdateState::ReadyToInstall => "✅ Ready to install".to_string(),
-                    UpdateState::Installing => "⚙️ Installing...".to_string(),
-                    UpdateState::Completed => "🎉 Completed".to_string(),
-                    UpdateState::Error { message } => format!("❌ {}", message),
+                    UpdateState::Verifying => "  Verifying...".to_string(),
+                    UpdateState::ReadyToInstall => "  Ready to install".to_string(),
+                    UpdateState::Installing => "  Installing...".to_string(),
+                    UpdateState::Completed => "  Completed".to_string(),
+                    UpdateState::Error { message } => format!("  {}", message),
                 };
                 ui.label(status);
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -362,10 +362,10 @@ impl eframe::App for UpdateApp {
 
 impl UpdateApp {
     // ════════════════════════════════════════════════════════════
-    // 🌐 SERVERS & APPS  (główna zakładka)
+    //   SERVERS & APPS  (główna zakładka)
     // ════════════════════════════════════════════════════════════
     fn render_servers_apps(&mut self, ui: &mut egui::Ui) {
-        ui.heading("🌐 Servers & Applications");
+        ui.heading("  Servers & Applications");
         ui.separator();
 
         // ── Server selector ──────────────────────────────────────
@@ -414,7 +414,7 @@ impl UpdateApp {
                     self.select_server(first);
                 }
 
-                if ui.button("🔄 Refresh").clicked() {
+                if ui.button("  Refresh").clicked() {
                     self.refresh_apps_list();
                 }
             });
@@ -427,7 +427,7 @@ impl UpdateApp {
                 ui.add_space(40.0);
                 ui.label("No applications found on this server.");
                 ui.add_space(8.0);
-                if ui.button("🔄 Load apps").clicked() {
+                if ui.button("  Load apps").clicked() {
                     self.refresh_apps_list();
                 }
             });
@@ -493,7 +493,7 @@ impl UpdateApp {
                                 );
                                 ui.label("—");
                                 if ui
-                                    .button("⬇️ Install")
+                                    .button("  Install")
                                     .on_hover_text("Download, verify and install")
                                     .clicked()
                                 {
@@ -516,7 +516,7 @@ impl UpdateApp {
                                 } else {
                                     ui.colored_label(
                                         egui::Color32::GREEN,
-                                        "✅ Installed",
+                                        "  Installed",
                                     );
                                 }
 
@@ -524,7 +524,7 @@ impl UpdateApp {
 
                                 if has_update {
                                     if ui
-                                        .button("⬆️ Update")
+                                        .button("  Update")
                                         .on_hover_text("Download and install the new version")
                                         .clicked()
                                     {
@@ -547,7 +547,7 @@ impl UpdateApp {
             ui.add_space(10.0);
             ui.separator();
             ui.group(|ui| {
-                ui.heading("🔍 Last verification");
+                ui.heading("  Last verification");
                 egui::Grid::new("ver_grid")
                     .num_columns(2)
                     .spacing([10.0, 4.0])
@@ -562,11 +562,11 @@ impl UpdateApp {
 
                 ui.add_space(4.0);
                 if report.overall_valid {
-                    ui.colored_label(egui::Color32::GREEN, "✅ ALL CHECKS PASSED");
+                    ui.colored_label(egui::Color32::GREEN, "  ALL CHECKS PASSED");
                 } else {
-                    ui.colored_label(egui::Color32::RED, "❌ VERIFICATION FAILED");
+                    ui.colored_label(egui::Color32::RED, "  VERIFICATION FAILED");
                     for e in &report.errors {
-                        ui.colored_label(egui::Color32::RED, format!("  ⚠ {}", e));
+                        ui.colored_label(egui::Color32::RED, format!("    {}", e));
                     }
                 }
             });
@@ -574,10 +574,10 @@ impl UpdateApp {
     }
 
     // ════════════════════════════════════════════════════════════
-    // 📊 DASHBOARD
+    //   DASHBOARD
     // ════════════════════════════════════════════════════════════
     fn render_dashboard(&mut self, ui: &mut egui::Ui) {
-        ui.heading("📊 Dashboard");
+        ui.heading("  Dashboard");
         ui.separator();
 
         egui::Grid::new("dash_grid")
@@ -586,7 +586,7 @@ impl UpdateApp {
             .show(ui, |ui| {
                 ui.group(|ui| {
                     ui.set_min_width(350.0);
-                    ui.heading("📦 Installed apps");
+                    ui.heading("  Installed apps");
                     ui.separator();
                     let installed: Vec<_> = self
                         .config
@@ -605,7 +605,7 @@ impl UpdateApp {
 
                 ui.group(|ui| {
                     ui.set_min_width(350.0);
-                    ui.heading("🌐 Server");
+                    ui.heading("  Server");
                     ui.separator();
                     ui.label(format!("URL: {}", self.selected_server));
                     ui.label(format!("Known servers: {}", self.config.servers.len()));
@@ -616,7 +616,7 @@ impl UpdateApp {
 
                 ui.group(|ui| {
                     ui.set_min_width(350.0);
-                    ui.heading("🔐 Cryptography");
+                    ui.heading("  Cryptography");
                     ui.separator();
                     ui.label("PQ:      CRYSTALS-Dilithium3 (ML-DSA-65)");
                     ui.label("Classic: Ed25519");
@@ -626,7 +626,7 @@ impl UpdateApp {
 
                 ui.group(|ui| {
                     ui.set_min_width(350.0);
-                    ui.heading("📌 Pinned keys");
+                    ui.heading("  Pinned keys");
                     ui.separator();
                     let keys = self
                         .config
@@ -635,33 +635,33 @@ impl UpdateApp {
                         .map(|v| v.len())
                         .unwrap_or(0);
                     ui.label(format!("Pinned for current server: {}", keys));
-                    ui.label("Anti-downgrade: ✅ Enabled");
+                    ui.label("Anti-downgrade:   Enabled");
                 });
             });
 
         ui.add_space(16.0);
 
         ui.horizontal(|ui| {
-            if ui.button("🔄 Refresh apps").clicked() {
+            if ui.button("  Refresh apps").clicked() {
                 self.refresh_apps_list();
             }
-            if ui.button("🛡️ Security check").clicked() {
+            if ui.button("  Security check").clicked() {
                 self.perform_hardening_check();
             }
-            if ui.button("🏥 Health check").clicked() {
+            if ui.button("  Health check").clicked() {
                 self.perform_health_check();
             }
         });
     }
 
     // ════════════════════════════════════════════════════════════
-    // 🛡️ SECURITY
+    //   SECURITY
     // ════════════════════════════════════════════════════════════
     fn render_security(&mut self, ui: &mut egui::Ui) {
-        ui.heading("🛡️ Security");
+        ui.heading("  Security");
         ui.separator();
 
-        if ui.button("🔍 Run security check").clicked() {
+        if ui.button("  Run security check").clicked() {
             self.perform_hardening_check();
         }
 
@@ -679,22 +679,22 @@ impl UpdateApp {
                         bool_label(ui, report.self_integrity_ok, "OK", "COMPROMISED");
 
                         ui.label("Debugger:");
-                        bool_label(ui, !report.debugger_detected, "Not detected", "⚠️ DETECTED");
+                        bool_label(ui, !report.debugger_detected, "Not detected", "  DETECTED");
 
                         ui.label("Environment:");
                         if report.environment_warnings.is_empty() {
-                            ui.colored_label(egui::Color32::GREEN, "✅ Clean");
+                            ui.colored_label(egui::Color32::GREEN, "  Clean");
                         } else {
                             ui.colored_label(
                                 egui::Color32::YELLOW,
-                                format!("⚠️ {} warnings", report.environment_warnings.len()),
+                                format!("  {} warnings", report.environment_warnings.len()),
                             );
                         }
                         ui.end_row();
                     });
 
                 for w in &report.environment_warnings {
-                    ui.colored_label(egui::Color32::YELLOW, format!("  ⚠ {}", w));
+                    ui.colored_label(egui::Color32::YELLOW, format!("    {}", w));
                 }
             });
         }
@@ -702,7 +702,7 @@ impl UpdateApp {
         ui.add_space(10.0);
 
         ui.group(|ui| {
-            ui.heading("🔑 Pinned keys (current server)");
+            ui.heading("  Pinned keys (current server)");
             ui.separator();
             let keys = self
                 .config
@@ -715,14 +715,14 @@ impl UpdateApp {
             } else {
                 for k in &keys {
                     ui.label(format!(
-                        "📌 {} (Dilithium: {}...)",
+                        "  {} (Dilithium: {}...)",
                         k.publisher_id,
                         &k.dilithium_public_key[..20.min(k.dilithium_public_key.len())]
                     ));
                 }
             }
             ui.add_space(4.0);
-            if ui.button("🗑 Clear pinned keys for this server").clicked() {
+            if ui.button("  Clear pinned keys for this server").clicked() {
                 self.config
                     .pinned_publisher_keys_by_server
                     .remove(&self.selected_server);
@@ -734,22 +734,22 @@ impl UpdateApp {
         ui.add_space(10.0);
 
         ui.group(|ui| {
-            ui.heading("🎯 Protected against");
+            ui.heading("  Protected against");
             ui.separator();
-            ui.label("✅ MITM / package tampering  (SHA3-256 + Dilithium3 + Ed25519)");
-            ui.label("✅ Downgrade attacks          (monotonic versioning)");
-            ui.label("✅ Quantum threats            (CRYSTALS-Dilithium3)");
-            ui.label("✅ Key compromise             (hybrid scheme)");
-            ui.label("✅ Replay attacks             (timestamped signatures)");
-            ui.label("⚠️ Transport (prototyp HTTP → produkcja TLS 1.3)");
+            ui.label("  MITM / package tampering  (SHA3-256 + Dilithium3 + Ed25519)");
+            ui.label("  Downgrade attacks          (monotonic versioning)");
+            ui.label("  Quantum threats            (CRYSTALS-Dilithium3)");
+            ui.label("  Key compromise             (hybrid scheme)");
+            ui.label("  Replay attacks             (timestamped signatures)");
+            ui.label("  Transport (prototyp HTTP → produkcja TLS 1.3)");
         });
     }
 
     // ════════════════════════════════════════════════════════════
-    // ⚙️ SETTINGS
+    //   SETTINGS
     // ════════════════════════════════════════════════════════════
     fn render_settings(&mut self, ui: &mut egui::Ui) {
-        ui.heading("⚙️ Settings");
+        ui.heading("  Settings");
         ui.separator();
 
         ui.group(|ui| {
@@ -795,7 +795,7 @@ impl UpdateApp {
 
         ui.add_space(8.0);
 
-        if ui.button("💾 Save").clicked() {
+        if ui.button("  Save").clicked() {
             self.config.download_dir = self.download_dir_input.clone();
             self.config.install_dir = self.install_dir_input.clone();
             if let Err(e) = config::save_config(&self.config) {
@@ -807,13 +807,13 @@ impl UpdateApp {
     }
 
     // ════════════════════════════════════════════════════════════
-    // 📋 LOGS
+    //   LOGS
     // ════════════════════════════════════════════════════════════
     fn render_logs(&mut self, ui: &mut egui::Ui) {
-        ui.heading("📋 Logs");
+        ui.heading("  Logs");
         ui.separator();
 
-        if ui.button("🗑 Clear").clicked() {
+        if ui.button("  Clear").clicked() {
             self.log_messages.clear();
         }
 
@@ -844,7 +844,7 @@ impl UpdateApp {
         self.add_log(LogLevel::Info, &format!("Health check: {}", url));
         match reqwest::blocking::get(&url) {
             Ok(r) if r.status().is_success() => {
-                self.add_log(LogLevel::Success, "Server is healthy ✅");
+                self.add_log(LogLevel::Success, "Server is healthy  ");
             }
             Ok(r) => {
                 self.add_log(LogLevel::Error, &format!("Server returned {}", r.status()));
@@ -859,7 +859,7 @@ impl UpdateApp {
         self.add_log(LogLevel::Info, "Running security checks...");
         let report = anti_tamper::full_hardening_check();
         if report.overall_safe {
-            self.add_log(LogLevel::Success, "Environment is safe ✅");
+            self.add_log(LogLevel::Success, "Environment is safe  ");
         } else {
             if report.debugger_detected {
                 self.add_log(LogLevel::Warning, "Debugger detected!");
@@ -877,18 +877,18 @@ impl UpdateApp {
 fn check_row(ui: &mut egui::Ui, label: &str, ok: bool) {
     ui.label(format!("{}:", label));
     if ok {
-        ui.colored_label(egui::Color32::GREEN, "✅ PASS");
+        ui.colored_label(egui::Color32::GREEN, "  PASS");
     } else {
-        ui.colored_label(egui::Color32::RED, "❌ FAIL");
+        ui.colored_label(egui::Color32::RED, "  FAIL");
     }
     ui.end_row();
 }
 
 fn bool_label(ui: &mut egui::Ui, ok: bool, ok_text: &str, fail_text: &str) {
     if ok {
-        ui.colored_label(egui::Color32::GREEN, format!("✅ {}", ok_text));
+        ui.colored_label(egui::Color32::GREEN, format!("  {}", ok_text));
     } else {
-        ui.colored_label(egui::Color32::RED, format!("❌ {}", fail_text));
+        ui.colored_label(egui::Color32::RED, format!("  {}", fail_text));
     }
     ui.end_row();
 }

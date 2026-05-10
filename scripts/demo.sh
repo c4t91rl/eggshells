@@ -12,7 +12,7 @@ echo ""
 # 1. Budowanie
 echo "1. Building all components..."
 cargo build --release
-echo "   ✅ Build complete"
+echo "     Build complete"
 echo ""
 
 # 2. Uruchom serwer w tle
@@ -20,7 +20,7 @@ echo "2. Starting update server..."
 cargo run --release -p secure-update-server &
 SERVER_PID=$!
 sleep 2
-echo "   ✅ Server started (PID: $SERVER_PID)"
+echo "     Server started (PID: $SERVER_PID)"
 echo ""
 
 # 3. Generowanie kluczy publishera

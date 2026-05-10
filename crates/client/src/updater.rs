@@ -90,7 +90,7 @@ pub fn apply_update(
     std::fs::write(&output_path, package_data)
         .context("Failed to write update file")?;
     tracing::info!(
-        "✅ Applied: {} v{} → {}",
+        "  Applied: {} v{} → {}",
         metadata.app_id,
         metadata.version,
         output_path.display()
