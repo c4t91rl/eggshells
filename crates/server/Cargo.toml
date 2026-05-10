@@ -13,16 +13,15 @@ uuid               = { workspace = true }
 hex                = { workspace = true }
 base64             = { workspace = true }
 
-<<<<<<< Updated upstream
-sha3 = "0.10"
-digest = "0.10"
+# sha3 = "0.10"
+# digest = "0.10"
 
 # Argon2id dla hashowania haseł (memory-hard, odporny na GPU brute-force)
 argon2 = "0.5"
 
 # Thread-safe hashmap dla rate limitera
 dashmap = "5"
-=======
+
 # ── Web server ────────────────────────────────────────────────────────────────
 actix-web          = { version = "4", features = ["rustls-0_23"] }  # ← changed
 actix-cors         = "0.7"
@@ -77,4 +76,3 @@ digest             = "0.10"
 # anyhow = "1"
 # tracing = "0.1"
 # tracing-subscriber = { version = "0.3", features = ["env-filter"] }
->>>>>>> Stashed changes
