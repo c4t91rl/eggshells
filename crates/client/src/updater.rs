@@ -83,6 +83,50 @@ pub fn download_package(
     Ok(response.bytes()?.to_vec())
 }
 
+/// Fetches the package metadata for a specific app version from the server.
+///
+/// This is used during hardening checks to obtain metadata for an installed
+/// version that may differ from the server's latest version.
+pub fn fetch_package_metadata(
+    server_url: &str,
+    app_id: &str,
+    version: &str,
+) -> Result<PackageMetadata> {
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()?;
+
+    let url = format!(
+        "{}/api/metadata/{}/{}",
+        server_url.trim_end_matches('/'),
+        app_id,
+        version
+    );
+
+    let response = client
+        .get(&url)
+        .send()
+        .context(format!(
+            "Failed to fetch metadata for {} v{}", app_id, version
+        ))?;
+
+    if !response.status().is_success() {
+        anyhow::bail!(
+            "Metadata fetch failed for {} v{}: HTTP {}: {}",
+            app_id,
+            version,
+            response.status(),
+            response.text().unwrap_or_default()
+        );
+    }
+
+    response
+        .json()
+        .context(format!(
+            "Failed to parse metadata response for {} v{}", app_id, version
+        ))
+}
+
 pub fn apply_update(
     package_data: &[u8],
     metadata: &PackageMetadata,

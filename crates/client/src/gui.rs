@@ -160,83 +160,48 @@ impl eframe::App for UpdateApp {
             ui.horizontal(|ui| {
                 ui.heading("Secure Update Manager");
                 ui.separator();
-                ui.selectable_value(
-                    &mut self.active_tab,
-                    Tab::Apps,
-                    "🌐 Apps",
-                );
-                ui.selectable_value(
-                    &mut self.active_tab,
-                    Tab::Dashboard,
-                    "📊 Dashboard",
-                );
-                ui.selectable_value(
-                    &mut self.active_tab,
-                    Tab::Security,
-                    "🛡️ Security",
-                );
-                ui.selectable_value(
-                    &mut self.active_tab,
-                    Tab::Settings,
-                    "⚙️ Settings",
-                );
-                ui.selectable_value(
-                    &mut self.active_tab,
-                    Tab::Logs,
-                    "📋 Logs",
-                );
+                ui.selectable_value(&mut self.active_tab, Tab::Apps, "🌐 Apps");
+                ui.selectable_value(&mut self.active_tab, Tab::Dashboard, "📊 Dashboard");
+                ui.selectable_value(&mut self.active_tab, Tab::Security, "🛡 Security");
+                ui.selectable_value(&mut self.active_tab, Tab::Settings, "⚙ Settings");
+                ui.selectable_value(&mut self.active_tab, Tab::Logs, "📋 Logs");
             });
         });
 
-        egui::TopBottomPanel::bottom("bottom").show(
-            ctx,
-            |ui| {
-                ui.horizontal(|ui| {
-                    let status = match &self.update_state {
-                        UpdateState::UpToDate => "✅ Ready",
-                        UpdateState::Checking => "🔄 Checking...",
-                        UpdateState::UpdateAvailable { .. } => {
-                            "📦 Update available"
-                        }
-                        UpdateState::Downloading { .. } => {
-                            "⬇️ Downloading..."
-                        }
-                        UpdateState::Verifying => "🔍 Verifying...",
-                        UpdateState::ReadyToInstall => "✅ Ready to install",
-                        UpdateState::Installing => "⚙️ Installing...",
-                        UpdateState::Completed => "🎉 Done",
-                        UpdateState::Error { .. } => "❌ Error",
+        // Status bar
+        egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                let status = match &self.update_state {
+                    UpdateState::UpToDate => "✅ Ready",
+                    UpdateState::Checking => "🔄 Checking...",
+                    UpdateState::UpdateAvailable { .. } => "📦 Update available",
+                    UpdateState::Downloading { .. } => "⬇ Downloading...",
+                    UpdateState::Verifying => "🔍 Verifying...",
+                    UpdateState::ReadyToInstall => "✅ Ready to install",
+                    UpdateState::Installing => "⚙ Installing...",
+                    UpdateState::Completed => "🎉 Done",
+                    UpdateState::Error { .. } => "❌ Error",
+                };
+                ui.label(status);
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let dot = match &self.health_info {
+                        Some(h) if h.is_healthy => "✅",
+                        Some(_) => "❌",
+                        None => "❌",
                     };
-                    ui.label(status);
-
-                    ui.with_layout(
-                        egui::Layout::right_to_left(
-                            egui::Align::Center,
-                        ),
-                        |ui| {
-                            let dot = match &self.health_info {
-                                Some(h) if h.is_healthy => "🟢",
-                                Some(_) => "🔴",
-                                None => "⚪",
-                            };
-                            ui.label(format!(
-                                "{} {}",
-                                dot, self.selected_server
-                            ));
-                        },
-                    );
+                    ui.label(format!("{} {}", dot, self.selected_server));
                 });
-            },
-        );
+            });
+        });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            match self.active_tab {
-                Tab::Apps => self.tab_apps(ui, ctx),
-                Tab::Dashboard => self.tab_dashboard(ui),
-                Tab::Security => self.tab_security(ui),
-                Tab::Settings => self.tab_settings(ui),
-                Tab::Logs => self.tab_logs(ui),
-            }
+        // Central
+        egui::CentralPanel::default().show(ctx, |ui| match self.active_tab {
+            Tab::Apps => self.tab_apps(ui, ctx),
+            Tab::Dashboard => self.tab_dashboard(ui),
+            Tab::Security => self.tab_security(ui),
+            Tab::Settings => self.tab_settings(ui),
+            Tab::Logs => self.tab_logs(ui),
         });
     }
 }
@@ -264,15 +229,10 @@ impl UpdateApp {
                     .show_ui(ui, |ui| {
                         for s in &servers {
                             if ui
-                                .selectable_value(
-                                    &mut self.selected_server,
-                                    s.clone(),
-                                    s,
-                                )
+                                .selectable_value(&mut self.selected_server, s.clone(), s)
                                 .clicked()
                             {
-                                let srv =
-                                    self.selected_server.clone();
+                                let srv = self.selected_server.clone();
                                 self.select_server(srv);
                             }
                         }
@@ -364,9 +324,7 @@ impl UpdateApp {
                                     app.latest_version
                                         .as_ref()
                                         .map(|v| v.to_string())
-                                        .unwrap_or_else(|| {
-                                            "—".into()
-                                        }),
+                                        .unwrap_or_else(|| "—".into()),
                                 );
                                 ui.label("•");
                                 ui.label(
@@ -414,12 +372,7 @@ impl UpdateApp {
                                     let has_update = app
                                         .latest_version
                                         .as_ref()
-                                        .map(|lv| {
-                                            lv.is_newer_than(
-                                                &inst
-                                                    .installed_version,
-                                            )
-                                        })
+                                        .map(|lv| lv.is_newer_than(&inst.installed_version))
                                         .unwrap_or(false);
 
                                     let del = egui::Button::new(
@@ -460,11 +413,8 @@ impl UpdateApp {
                                             egui::Color32::YELLOW,
                                             format!(
                                                 "v{} → {}",
-                                                inst
-                                                    .installed_version,
-                                                app.latest_version
-                                                    .as_ref()
-                                                    .unwrap()
+                                                inst.installed_version,
+                                                app.latest_version.as_ref().unwrap()
                                             ),
                                         );
                                     } else {
@@ -596,9 +546,7 @@ impl UpdateApp {
                 .config
                 .installed_apps
                 .iter()
-                .filter(|ia| {
-                    ia.server_url == self.selected_server
-                })
+                .filter(|ia| ia.server_url == self.selected_server)
                 .collect();
             if installed.is_empty() {
                 ui.label(
@@ -655,6 +603,9 @@ impl UpdateApp {
         });
     }
 
+    // ──────────────────────────────────────────────────────────
+    //  🛡 SECURITY
+    // ──────────────────────────────────────────────────────────
     fn tab_security(&mut self, ui: &mut egui::Ui) {
         ui.heading("🛡 Security");
         ui.add_space(4.0);
@@ -685,9 +636,9 @@ impl UpdateApp {
                                 ui,
                                 "Self-integrity",
                                 report.self_integrity_ok,
-                                "Binary verified by server",
-                                "Binary tampered or unreachable",
-                                "Compares SHA3-256 with hash from /api/client/integrity",
+                                "Binary unchanged",
+                                "Binary may be tampered",
+                                "SHA3-256 hash of own executable",
                             );
                             status_row(
                                 ui,
@@ -700,16 +651,9 @@ impl UpdateApp {
                             status_row(
                                 ui,
                                 "Environment",
-                                report
-                                    .environment_warnings
-                                    .is_empty(),
+                                report.environment_warnings.is_empty(),
                                 "Clean",
-                                &format!(
-                                    "{} issues",
-                                    report
-                                        .environment_warnings
-                                        .len()
-                                ),
+                                &format!("{} issues", report.environment_warnings.len()),
                                 "Checks LD_PRELOAD, DYLD_INSERT_LIBRARIES",
                             );
                         });
@@ -804,13 +748,23 @@ impl UpdateApp {
             let items = [
                 ("✅", "MITM / Tampering", "SHA3-256 + dual signatures"),
                 ("✅", "Downgrade attacks", "Monotonic version enforcement"),
-                ("✅", "Quantum threats", "CRYSTALS-Dilithium3 (NIST Level 3)"),
+                (
+                    "✅",
+                    "Quantum threats",
+                    "CRYSTALS-Dilithium3 (NIST Level 3)",
+                ),
                 ("✅", "Key compromise", "Hybrid scheme (PQ + classical)"),
                 ("✅", "Replay attacks", "Timestamped signatures"),
-                ("✅", "Client tampering", "Server-verified self-integrity"),
-                ("✅", "Brute-force login", "Rate limit (5/60s) + Argon2id"),
-                ("✅", "Path traversal", "Filename sanitization"),
-                ("⚠️", "Transport security", "HTTP in prototype (TLS 1.3 in production)"),
+                (
+                    "✅",
+                    "Client tampering",
+                    "Self-integrity + debugger detection",
+                ),
+                (
+                    "⚠",
+                    "Transport security",
+                    "HTTP in prototype (TLS 1.3 in production)",
+                ),
             ];
             egui::Grid::new("prot_grid")
                 .num_columns(3)
@@ -956,27 +910,12 @@ impl UpdateApp {
             .show(ui, |ui| {
                 for entry in self.log_messages.iter().rev() {
                     let color = match entry.level {
-                        LogLevel::Info => {
-                            egui::Color32::LIGHT_GRAY
-                        }
-                        LogLevel::Success => {
-                            egui::Color32::GREEN
-                        }
-                        LogLevel::Warning => {
-                            egui::Color32::YELLOW
-                        }
-                        LogLevel::Error => {
-                            egui::Color32::RED
-                        }
+                        LogLevel::Info => egui::Color32::LIGHT_GRAY,
+                        LogLevel::Success => egui::Color32::GREEN,
+                        LogLevel::Warning => egui::Color32::YELLOW,
+                        LogLevel::Error => egui::Color32::RED,
                     };
-                    ui.colored_label(
-                        color,
-                        format!(
-                            "[{}] {}",
-                            entry.timestamp,
-                            entry.message
-                        ),
-                    );
+                    ui.colored_label(color, format!("[{}] {}", entry.timestamp, entry.message));
                 }
             });
     }
@@ -987,37 +926,25 @@ impl UpdateApp {
 // ═══════════════════════════════════════════════════════════════
 
 impl UpdateApp {
-    fn get_installed_app(
-        &self,
-        server: &str,
-        app_id: &str,
-    ) -> Option<InstalledApp> {
+    fn get_installed_app(&self, server: &str, app_id: &str) -> Option<InstalledApp> {
         self.config
             .installed_apps
             .iter()
-            .find(|ia| {
-                ia.server_url == server && ia.app_id == app_id
-            })
+            .find(|ia| ia.server_url == server && ia.app_id == app_id)
             .cloned()
     }
 
     fn refresh_apps_list(&mut self) {
         self.add_log(
             LogLevel::Info,
-            &format!(
-                "Fetching apps from {}…",
-                self.selected_server
-            ),
+            &format!("Fetching apps from {}…", self.selected_server),
         );
         match updater::fetch_apps(&self.selected_server) {
             Ok(resp) => {
                 self.apps_list = resp.apps;
                 self.add_log(
                     LogLevel::Success,
-                    &format!(
-                        "Found {} apps",
-                        self.apps_list.len()
-                    ),
+                    &format!("Found {} apps", self.apps_list.len()),
                 );
             }
             Err(e) => {
@@ -1098,10 +1025,7 @@ impl UpdateApp {
                         });
                         self.add_log(
                             LogLevel::Success,
-                            &format!(
-                                "Server healthy ({}ms)",
-                                latency
-                            ),
+                            &format!("Server healthy ({}ms)", latency),
                         );
                     }
                     Err(e) => {
@@ -1131,10 +1055,7 @@ impl UpdateApp {
                 });
                 self.add_log(
                     LogLevel::Error,
-                    &format!(
-                        "Server returned {}",
-                        resp.status()
-                    ),
+                    &format!("Server returned {}", resp.status()),
                 );
             }
             Err(e) => {
@@ -1186,8 +1107,238 @@ impl UpdateApp {
             }
         }
         self.hardening_report = Some(report);
-    }
+        // Verify all locally installed packages against remote signatures
+        self.add_log(
+            LogLevel::Info,
+            "Verifying all installed packages against remote signatures…",
+        );
 
+        let installed_apps: Vec<InstalledApp> = self.config.installed_apps.clone();
+        let mut all_valid = true;
+        let mut verified_count: usize = 0;
+        let mut failed_apps: Vec<String> = Vec::new();
+        dbg!("bhubhdbhadbehabhads");
+        for installed in &installed_apps {
+            dbg!(installed);
+            let app_id = &installed.app_id;
+            let server = &installed.server_url;
+            let version = &installed.installed_version;
+
+            self.add_log(
+                LogLevel::Info,
+                &format!(
+                    "Verifying {} v{} (installed at {})…",
+                    app_id, version, installed.install_dir
+                ),
+            );
+
+            // 1. Fetch remote metadata for the installed version
+            let metadata =
+                match updater::fetch_package_metadata(server, app_id, &version.to_string()) {
+                    Ok(m) => m,
+                    Err(e) => {
+                        self.add_log(
+                            LogLevel::Error,
+                            &format!(
+                                "Failed to fetch remote metadata for {} v{}: {}",
+                                app_id, version, e
+                            ),
+                        );
+                        all_valid = false;
+                        failed_apps.push(app_id.clone());
+                        continue;
+                    }
+                };
+
+            // 2. Resolve publisher key: prefer pinned, fall back to server
+            let pub_key = {
+                let pinned_key = self
+                    .config
+                    .pinned_publisher_keys_by_server
+                    .get(server)
+                    .and_then(|keys| {
+                        keys.iter()
+                            .find(|k| k.publisher_id == metadata.publisher_id)
+                            .cloned()
+                    });
+
+                match pinned_key {
+                    Some(k) => {
+                        self.add_log(
+                            LogLevel::Info,
+                            &format!("Using pinned key for publisher '{}'", k.publisher_id),
+                        );
+                        k
+                    }
+                    None => {
+                        // Fetch from server as fallback
+                        match updater::check_for_update(server, app_id, version) {
+                            Ok(resp) => match resp.publisher_public_key {
+                                Some(k) => {
+                                    self.add_log(
+                                        LogLevel::Warning,
+                                        &format!(
+                                            "No pinned key for '{}'; using server-provided key",
+                                            k.publisher_id
+                                        ),
+                                    );
+                                    k
+                                }
+                                None => {
+                                    self.add_log(
+                                        LogLevel::Error,
+                                        &format!("No publisher key available for {}", app_id),
+                                    );
+                                    all_valid = false;
+                                    failed_apps.push(app_id.clone());
+                                    continue;
+                                }
+                            },
+                            Err(e) => {
+                                self.add_log(
+                                    LogLevel::Error,
+                                    &format!("Failed to fetch publisher key for {}: {}", app_id, e),
+                                );
+                                all_valid = false;
+                                failed_apps.push(app_id.clone());
+                                continue;
+                            }
+                        }
+                    }
+                }
+            };
+
+            // 3. Read the locally installed file from disk
+            let local_path = std::path::Path::new(&installed.install_dir).join(&metadata.filename);
+            let local_data = match std::fs::read(&local_path) {
+                Ok(data) => {
+                    self.add_log(
+                        LogLevel::Info,
+                        &format!("Read {} bytes from {}", data.len(), local_path.display()),
+                    );
+                    data
+                }
+                Err(e) => {
+                    self.add_log(
+                        LogLevel::Error,
+                        &format!("Cannot read installed file {}: {}", local_path.display(), e),
+                    );
+                    all_valid = false;
+                    failed_apps.push(app_id.clone());
+                    continue;
+                }
+            };
+
+            // 4. Verify local file data against remote metadata and signatures
+            //    Use 0.0.0 as baseline so the anti-downgrade check always passes
+            let baseline_version = SemanticVersion::new(0, 0, 0);
+
+            let verification = match crate::verifier::verify_package(
+                &local_data,
+                &metadata,
+                &pub_key,
+                &baseline_version,
+            ) {
+                Ok(r) => r,
+                Err(e) => {
+                    self.add_log(
+                        LogLevel::Error,
+                        &format!("Verification error for {}: {}", app_id, e),
+                    );
+                    all_valid = false;
+                    failed_apps.push(app_id.clone());
+                    continue;
+                }
+            };
+
+            // 5. Report results
+            if verification.overall_valid {
+                self.add_log(
+                    LogLevel::Success,
+                    &format!(
+                        "✅ {} v{} — local file matches remote signatures",
+                        app_id, version
+                    ),
+                );
+
+                // Update last_verified_at
+                if let Some(ia) = self
+                    .config
+                    .installed_apps
+                    .iter_mut()
+                    .find(|ia| ia.server_url == *server && ia.app_id == *app_id)
+                {
+                    ia.last_verified_at = Some(Utc::now());
+                }
+
+                verified_count += 1;
+            } else {
+                all_valid = false;
+                failed_apps.push(app_id.clone());
+                self.add_log(
+                    LogLevel::Error,
+                    &format!(
+                        "❌ {} v{} — LOCAL FILE DOES NOT MATCH REMOTE SIGNATURES",
+                        app_id, version
+                    ),
+                );
+                if !verification.hash_check {
+                    self.add_log(
+                        LogLevel::Error,
+                        &format!(
+                            "  ⚠ SHA3-256 mismatch — file at {} may be tampered",
+                            local_path.display()
+                        ),
+                    );
+                }
+                if !verification.size_check {
+                    self.add_log(
+                        LogLevel::Error,
+                        &format!("  ⚠ Size mismatch — expected {} bytes", metadata.file_size),
+                    );
+                }
+                if !verification.dilithium_valid {
+                    self.add_log(LogLevel::Error, "  ⚠ Dilithium3 (PQ) signature invalid");
+                }
+                if !verification.ed25519_valid {
+                    self.add_log(LogLevel::Error, "  ⚠ Ed25519 signature invalid");
+                }
+                if !verification.publisher_check {
+                    self.add_log(LogLevel::Error, "  ⚠ Publisher identity mismatch");
+                }
+                for err in &verification.errors {
+                    self.add_log(LogLevel::Error, &format!("  ⚠ {}", err));
+                }
+            }
+        }
+
+        // Persist updated last_verified_at timestamps
+        let _ = config::save_config(&self.config);
+
+        // Summary
+        let total = installed_apps.len();
+        if total == 0 {
+            self.add_log(LogLevel::Info, "No installed packages to verify.");
+        } else if all_valid {
+            self.add_log(
+                LogLevel::Success,
+                &format!(
+                "✅ All {} installed package(s) verified — local files match remote signatures.",
+                verified_count
+            ),
+            );
+        } else {
+            self.add_log(
+                LogLevel::Error,
+                &format!(
+                    "❌ {}/{} verified. TAMPERED OR FAILED: {}",
+                    verified_count,
+                    total,
+                    failed_apps.join(", ")
+                ),
+            );
+        }
+    }
     fn uninstall_app(&mut self, app_id: &str) {
         let server = self.selected_server.clone();
         let installed = match self
@@ -1218,22 +1369,15 @@ impl UpdateApp {
             match std::fs::remove_dir_all(path) {
                 Ok(_) => self.add_log(
                     LogLevel::Success,
-                    &format!(
-                        "Removed {}",
-                        installed.install_dir
-                    ),
+                    &format!("Removed {}", installed.install_dir),
                 ),
-                Err(e) => self.add_log(
-                    LogLevel::Error,
-                    &format!("Remove failed: {}", e),
-                ),
+                Err(e) => self.add_log(LogLevel::Error, &format!("Remove failed: {}", e)),
             }
         }
 
-        self.config.installed_apps.retain(|ia| {
-            !(ia.server_url == server
-                && ia.app_id == app_id)
-        });
+        self.config
+            .installed_apps
+            .retain(|ia| !(ia.server_url == server && ia.app_id == app_id));
         let _ = config::save_config(&self.config);
 
         self.add_log(
@@ -1278,10 +1422,7 @@ impl UpdateApp {
             &current_version,
         ) {
             Err(e) => {
-                self.add_log(
-                    LogLevel::Error,
-                    &format!("Check failed: {}", e),
-                );
+                self.add_log(LogLevel::Error, &format!("Check failed: {}", e));
                 self.update_state = UpdateState::Error {
                     message: format!("{}", e),
                 };
@@ -1324,21 +1465,20 @@ impl UpdateApp {
             }
         };
 
+        // TOFU key pinning
         let pinned = self
             .config
             .pinned_publisher_keys_by_server
             .entry(server.clone())
             .or_default();
-        if !pinned.iter().any(|k| {
-            k.publisher_id == pub_key.publisher_id
-        }) {
+        if !pinned
+            .iter()
+            .any(|k| k.publisher_id == pub_key.publisher_id)
+        {
             pinned.push(pub_key.clone());
             self.add_log(
                 LogLevel::Info,
-                &format!(
-                    "Pinned key: {}",
-                    pub_key.publisher_id
-                ),
+                &format!("Pinned key: {}", pub_key.publisher_id),
             );
         }
 
@@ -1349,6 +1489,7 @@ impl UpdateApp {
             &format!("Found v{}", ver),
         );
 
+        // 2. Download
         self.update_state = UpdateState::Downloading {
             progress_percent: 0.0,
         };
@@ -1358,10 +1499,7 @@ impl UpdateApp {
             &server, &app, &ver,
         ) {
             Err(e) => {
-                self.add_log(
-                    LogLevel::Error,
-                    &format!("Download failed: {}", e),
-                );
+                self.add_log(LogLevel::Error, &format!("Download failed: {}", e));
                 self.update_state = UpdateState::Error {
                     message: format!("{}", e),
                 };
@@ -1378,25 +1516,18 @@ impl UpdateApp {
         self.update_state = UpdateState::Verifying;
         ctx.request_repaint();
 
-        let report = match crate::verifier::verify_package(
-            &data,
-            &metadata,
-            &pub_key,
-            &current_version,
-        ) {
-            Err(e) => {
-                self.add_log(
-                    LogLevel::Error,
-                    &format!("Verify error: {}", e),
-                );
-                self.update_state = UpdateState::Error {
-                    message: format!("{}", e),
-                };
-                ctx.request_repaint();
-                return;
-            }
-            Ok(r) => r,
-        };
+        let report =
+            match crate::verifier::verify_package(&data, &metadata, &pub_key, &current_version) {
+                Err(e) => {
+                    self.add_log(LogLevel::Error, &format!("Verify error: {}", e));
+                    self.update_state = UpdateState::Error {
+                        message: format!("{}", e),
+                    };
+                    ctx.request_repaint();
+                    return;
+                }
+                Ok(r) => r,
+            };
 
         self.verification_report = Some(report.clone());
 
@@ -1420,13 +1551,8 @@ impl UpdateApp {
             "✅ Verification PASSED",
         );
 
-        let install_dir = format!(
-            "{}/{}",
-            self.config
-                .install_dir
-                .trim_end_matches('/'),
-            app
-        );
+        // 4. Apply
+        let install_dir = format!("{}/{}", self.config.install_dir.trim_end_matches('/'), app);
         std::fs::create_dir_all(&install_dir).ok();
 
         match updater::apply_update(
@@ -1435,46 +1561,31 @@ impl UpdateApp {
             &install_dir,
         ) {
             Err(e) => {
-                self.add_log(
-                    LogLevel::Error,
-                    &format!("Apply failed: {}", e),
-                );
+                self.add_log(LogLevel::Error, &format!("Apply failed: {}", e));
                 self.update_state = UpdateState::Error {
                     message: format!("{}", e),
                 };
                 ctx.request_repaint();
             }
             Ok(_) => {
-                self.config.installed_apps.retain(|ia| {
-                    !(ia.server_url == server
-                        && ia.app_id == app)
+                self.config
+                    .installed_apps
+                    .retain(|ia| !(ia.server_url == server && ia.app_id == app));
+                self.config.installed_apps.push(InstalledApp {
+                    server_url: server,
+                    app_id: app.clone(),
+                    installed_version: metadata.version.clone(),
+                    install_dir: install_dir.clone(),
+                    installed_at: Utc::now(),
+                    last_verified_at: Some(Utc::now()),
                 });
-                self.config.installed_apps.push(
-                    InstalledApp {
-                        server_url: server,
-                        app_id: app.clone(),
-                        installed_version: metadata
-                            .version
-                            .clone(),
-                        install_dir: install_dir.clone(),
-                        installed_at: Utc::now(),
-                        last_verified_at: Some(Utc::now()),
-                    },
-                );
-                self.config.current_version =
-                    metadata.version.clone();
-                let _ =
-                    config::save_config(&self.config);
+                self.config.current_version = metadata.version.clone();
+                let _ = config::save_config(&self.config);
 
                 self.update_state = UpdateState::Completed;
                 self.add_log(
                     LogLevel::Success,
-                    &format!(
-                        "✅ {} v{} → {}",
-                        app,
-                        metadata.version,
-                        install_dir
-                    ),
+                    &format!("✅ {} v{} → {}", app, metadata.version, install_dir),
                 );
                 ctx.request_repaint();
             }
@@ -1496,36 +1607,12 @@ impl UpdateApp {
                 .num_columns(2)
                 .spacing([10.0, 4.0])
                 .show(ui, |ui| {
-                    check_row(
-                        ui,
-                        "File size",
-                        report.size_check,
-                    );
-                    check_row(
-                        ui,
-                        "SHA3-256 hash",
-                        report.hash_check,
-                    );
-                    check_row(
-                        ui,
-                        "Dilithium3 (PQ)",
-                        report.dilithium_valid,
-                    );
-                    check_row(
-                        ui,
-                        "Ed25519",
-                        report.ed25519_valid,
-                    );
-                    check_row(
-                        ui,
-                        "Anti-downgrade",
-                        report.version_check,
-                    );
-                    check_row(
-                        ui,
-                        "Publisher",
-                        report.publisher_check,
-                    );
+                    check_row(ui, "File size", report.size_check);
+                    check_row(ui, "SHA3-256 hash", report.hash_check);
+                    check_row(ui, "Dilithium3 (PQ)", report.dilithium_valid);
+                    check_row(ui, "Ed25519", report.ed25519_valid);
+                    check_row(ui, "Anti-downgrade", report.version_check);
+                    check_row(ui, "Publisher", report.publisher_check);
                 });
             ui.add_space(4.0);
             if report.overall_valid {
