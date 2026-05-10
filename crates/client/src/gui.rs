@@ -1,6 +1,7 @@
 use chrono::Utc;
 use eframe::egui;
 use secure_update_common::*;
+use std::path::PathBuf;  // ← add this
 
 use crate::verifier::VerificationReport;
 use crate::{anti_tamper, config, updater};
@@ -48,6 +49,7 @@ pub struct UpdateApp {
 
     apps_list: Vec<AppInfo>,
     selected_server: String,
+    cert_path: Option<PathBuf>,
     new_server_input: String,
 
     active_app_id: String,
@@ -69,12 +71,12 @@ pub struct UpdateApp {
 }
 
 impl UpdateApp {
-    pub fn new() -> Self {
-        let config =
-            config::load_or_create_config().unwrap_or_default();
+    pub fn new(cert_path: Option<PathBuf>) -> Self {
+        let config = config::load_or_create_config().unwrap_or_default();
 
         let mut app = Self {
             selected_server: config.selected_server.clone(),
+            cert_path,
             new_server_input: String::new(),
             apps_list: Vec::new(),
             active_app_id: config.app_id.clone(),
@@ -1053,10 +1055,24 @@ impl UpdateApp {
 
         let start = std::time::Instant::now();
 
-        match reqwest::blocking::Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
-            .build()
-            .and_then(|c| c.get(&url).send())
+        // match reqwest::blocking::Client::builder()
+        //     .timeout(std::time::Duration::from_secs(10))
+        //     .build()
+        //     .and_then(|c| c.get(&url).send())
+
+        let mut client_builder = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(10));
+
+            if let Some(ref cert_path) = self.cert_path {
+                if let Ok(pem) = std::fs::read(cert_path) {
+                    if let Ok(cert) = reqwest::Certificate::from_pem(&pem) {
+                        client_builder = client_builder.add_root_certificate(cert);
+                    }
+                }
+            }
+
+            match client_builder.build().and_then(|c| c.get(&url).send())
+
         {
             Ok(resp) if resp.status().is_success() => {
                 let latency = start.elapsed().as_millis();
@@ -1159,7 +1175,7 @@ impl UpdateApp {
 
         let report =
             anti_tamper::full_hardening_check_with_server(
-                &self.selected_server,
+                &self.selected_server, self.cert_path.as_deref()
             );
 
         if report.overall_safe {
