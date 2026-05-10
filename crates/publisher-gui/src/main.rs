@@ -118,7 +118,7 @@ impl PublisherApp {
 
         Self {
             screen: Screen::Login,
-            server_url: "http://127.0.0.1:8443".into(),
+            server_url: "https://127.0.0.1:8443".into(),
             username: String::new(),
             password: String::new(),
             password_confirm: String::new(),
