@@ -1,36 +1,73 @@
-// crates/client/src/main.rs
 //! # Secure Update Client
 //!
-//! Klient aktualizacji z graficznym interfejsem użytkownika (egui).
-//! Cross-platform: działa na Windows i Linux.
+//! Klient aktualizacji z GUI (egui), cross-platform.
+//! Przy starcie wykonuje hardening checks z weryfikacją
+//! integralności przez serwer.
 
+mod anti_tamper;
+mod config;
 mod gui;
 mod updater;
 mod verifier;
-mod config;
-mod anti_tamper;
 
 use anyhow::Result;
 use eframe::egui;
 
 fn main() -> Result<()> {
-    // Inicjalizacja logowania
     tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::new("info"))
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::new("info"),
+        )
         .with_target(false)
         .init();
 
-    // Anti-tamper check przy starcie
-    if let Err(e) = anti_tamper::perform_self_integrity_check() {
-        eprintln!( "Self-integrity check warning: {}", e);
-        // W produkcji: odmów uruchomienia
+    // ── Hardening checks przy starcie ─────────────────────────
+
+    // 1. Debugger detection — twarde wyjście
+    if anti_tamper::check_debugger() {
+        eprintln!(
+            "❌ SECURITY: Debugger detected. Exiting."
+        );
+        std::process::exit(1);
     }
+
+    // 2. Environment checks — ostrzeżenia
+    let env_warnings = anti_tamper::check_environment();
+    for w in &env_warnings {
+        eprintln!("⚠️  SECURITY WARNING: {}", w);
+    }
+
+    // 3. Self-integrity z weryfikacją przez serwer
+    let cfg = config::load_or_create_config()
+        .unwrap_or_default();
+    let server_url = cfg.selected_server.clone();
+
+    eprintln!(
+        "🔍 Verifying client integrity against: {}",
+        server_url
+    );
+
+    if let Err(e) =
+        anti_tamper::perform_self_integrity_check_with_server(
+            &server_url,
+        )
+    {
+        eprintln!("❌ SECURITY: {}", e);
+        // W produkcji: std::process::exit(1);
+        // W prototypie: ostrzegamy, ale pozwalamy kontynuować
+        eprintln!(
+            "⚠️  Continuing despite integrity failure \
+             (prototype mode — would exit in production)"
+        );
+    }
+
+    // ── Uruchom GUI ───────────────────────────────────────────
 
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([900.0, 650.0])
             .with_min_inner_size([700.0, 500.0])
-            .with_title( "Secure Update Manager"),
+            .with_title("Secure Update Manager"),
         ..Default::default()
     };
 
@@ -38,14 +75,9 @@ fn main() -> Result<()> {
         "Secure Update Manager",
         options,
         Box::new(|cc| {
-            // Ustawiamy ciemny motyw
             cc.egui_ctx.set_visuals(egui::Visuals::dark());
-
-            // Konfigurujemy czcionki
-            let fonts = egui::FontDefinitions::default(); // mut - ponoć nie musi być
-            // Można dodać custom fonty tutaj
+            let fonts = egui::FontDefinitions::default();
             cc.egui_ctx.set_fonts(fonts);
-
             Ok(Box::new(gui::UpdateApp::new()))
         }),
     )

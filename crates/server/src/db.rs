@@ -44,6 +44,7 @@ impl Database {
 
             CREATE INDEX IF NOT EXISTS idx_packages_app_id
                 ON packages(app_id);
+
             CREATE INDEX IF NOT EXISTS idx_packages_version
                 ON packages(
                     app_id,
@@ -68,7 +69,8 @@ impl Database {
                 publisher_id TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 expires_at TEXT NOT NULL,
-                FOREIGN KEY (username) REFERENCES publisher_accounts(username)
+                FOREIGN KEY (username)
+                    REFERENCES publisher_accounts(username)
             );
             ",
         )
@@ -81,14 +83,22 @@ impl Database {
 
     // ─── Publishers ─────────────────────────────────────────────
 
-    pub fn register_publisher(&self, publisher: &PublisherInfo) -> Result<()> {
+    pub fn register_publisher(
+        &self,
+        publisher: &PublisherInfo,
+    ) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         let pk_json = serde_json::to_string(&publisher.public_key)?;
 
         conn.execute(
             "INSERT INTO publishers
              (id, display_name, public_key_json, registered_at, active)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
+             VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(id) DO UPDATE SET
+               display_name    = excluded.display_name,
+               public_key_json = excluded.public_key_json,
+               registered_at   = excluded.registered_at,
+               active          = excluded.active",
             params![
                 publisher.id,
                 publisher.display_name,
@@ -97,7 +107,7 @@ impl Database {
                 publisher.active as i32,
             ],
         )
-        .context("Failed to insert publisher")?;
+        .context("Failed to upsert publisher")?;
 
         Ok(())
     }
@@ -105,7 +115,8 @@ impl Database {
     pub fn list_publishers(&self) -> Result<Vec<PublisherInfo>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, display_name, public_key_json, registered_at, active
+            "SELECT id, display_name, public_key_json,
+                    registered_at, active
              FROM publishers",
         )?;
 
@@ -140,32 +151,46 @@ impl Database {
         Ok(publishers)
     }
 
-    pub fn get_publisher(&self, publisher_id: &str) -> Result<Option<PublisherInfo>> {
+    pub fn get_publisher(
+        &self,
+        publisher_id: &str,
+    ) -> Result<Option<PublisherInfo>> {
         let publishers = self.list_publishers()?;
-        Ok(publishers.into_iter().find(|p| p.id == publisher_id))
+        Ok(publishers
+            .into_iter()
+            .find(|p| p.id == publisher_id))
     }
 
     // ─── Packages ───────────────────────────────────────────────
 
-    pub fn save_package_metadata(&self, metadata: &PackageMetadata) -> Result<()> {
+    pub fn save_package_metadata(
+        &self,
+        metadata: &PackageMetadata,
+    ) -> Result<()> {
         let conn = self.conn.lock().unwrap();
 
-        let platforms_json = serde_json::to_string(&metadata.target_platforms)?;
-        let signature_json = serde_json::to_string(&metadata.signature)?;
+        let platforms_json =
+            serde_json::to_string(&metadata.target_platforms)?;
+        let signature_json =
+            serde_json::to_string(&metadata.signature)?;
         let min_upgrade_json = metadata
             .min_upgrade_from
             .as_ref()
             .map(|v| serde_json::to_string(v))
             .transpose()?;
-        let changelog_json = serde_json::to_string(&metadata.changelog)?;
+        let changelog_json =
+            serde_json::to_string(&metadata.changelog)?;
 
         conn.execute(
             "INSERT OR REPLACE INTO packages
-             (package_id, app_id, version_major, version_minor, version_patch,
-              publisher_id, sha3_256_hash, file_size, filename, description,
-              target_platforms_json, signature_json, published_at,
-              min_upgrade_from_json, changelog_json)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15)",
+             (package_id, app_id,
+              version_major, version_minor, version_patch,
+              publisher_id, sha3_256_hash, file_size,
+              filename, description,
+              target_platforms_json, signature_json,
+              published_at, min_upgrade_from_json, changelog_json)
+             VALUES
+             (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15)",
             params![
                 metadata.package_id,
                 metadata.app_id,
@@ -189,63 +214,81 @@ impl Database {
         Ok(())
     }
 
-    pub fn get_latest_package(&self, app_id: &str) -> Result<Option<PackageMetadata>> {
+    pub fn get_latest_package(
+        &self,
+        app_id: &str,
+    ) -> Result<Option<PackageMetadata>> {
         let conn = self.conn.lock().unwrap();
 
-        let result = conn.query_row(
-            "SELECT package_id, app_id,
-                    version_major, version_minor, version_patch,
-                    publisher_id, sha3_256_hash, file_size,
-                    filename, description,
-                    target_platforms_json, signature_json, published_at,
-                    min_upgrade_from_json, changelog_json
-             FROM packages
-             WHERE app_id = ?1
-             ORDER BY version_major DESC,
-                      version_minor DESC,
-                      version_patch DESC
-             LIMIT 1",
-            params![app_id],
-            |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1)?,
-                    row.get::<_, u32>(2)?,
-                    row.get::<_, u32>(3)?,
-                    row.get::<_, u32>(4)?,
-                    row.get::<_, String>(5)?,
-                    row.get::<_, String>(6)?,
-                    row.get::<_, i64>(7)?,
-                    row.get::<_, String>(8)?,
-                    row.get::<_, String>(9)?,
-                    row.get::<_, String>(10)?,
-                    row.get::<_, String>(11)?,
-                    row.get::<_, String>(12)?,
-                    row.get::<_, Option<String>>(13)?,
-                    row.get::<_, String>(14)?,
-                ))
-            },
-        )
-        .optional()
-        .context("Failed to query latest package")?;
+        let result = conn
+            .query_row(
+                "SELECT
+                     package_id, app_id,
+                     version_major, version_minor, version_patch,
+                     publisher_id, sha3_256_hash, file_size,
+                     filename, description,
+                     target_platforms_json, signature_json,
+                     published_at, min_upgrade_from_json,
+                     changelog_json
+                 FROM packages
+                 WHERE app_id = ?1
+                 ORDER BY
+                     version_major DESC,
+                     version_minor DESC,
+                     version_patch DESC
+                 LIMIT 1",
+                params![app_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, u32>(2)?,
+                        row.get::<_, u32>(3)?,
+                        row.get::<_, u32>(4)?,
+                        row.get::<_, String>(5)?,
+                        row.get::<_, String>(6)?,
+                        row.get::<_, i64>(7)?,
+                        row.get::<_, String>(8)?,
+                        row.get::<_, String>(9)?,
+                        row.get::<_, String>(10)?,
+                        row.get::<_, String>(11)?,
+                        row.get::<_, String>(12)?,
+                        row.get::<_, Option<String>>(13)?,
+                        row.get::<_, String>(14)?,
+                    ))
+                },
+            )
+            .optional()
+            .context("Failed to query latest package")?;
 
         match result {
             None => Ok(None),
             Some((
-                package_id, app_id,
-                major, minor, patch,
-                publisher_id, hash, size,
-                filename, desc,
-                platforms_json, sig_json, published_at_str,
-                min_upgrade_json, changelog_json,
+                package_id,
+                app_id,
+                major,
+                minor,
+                patch,
+                publisher_id,
+                hash,
+                size,
+                filename,
+                desc,
+                platforms_json,
+                sig_json,
+                published_at_str,
+                min_upgrade_json,
+                changelog_json,
             )) => {
                 let target_platforms: Vec<Platform> =
                     serde_json::from_str(&platforms_json)?;
                 let signature: HybridSignature =
                     serde_json::from_str(&sig_json)?;
                 let published_at =
-                    chrono::DateTime::parse_from_rfc3339(&published_at_str)?
-                        .with_timezone(&Utc);
+                    chrono::DateTime::parse_from_rfc3339(
+                        &published_at_str,
+                    )?
+                    .with_timezone(&Utc);
                 let min_upgrade_from: Option<SemanticVersion> =
                     min_upgrade_json
                         .map(|j| serde_json::from_str(&j))
@@ -256,7 +299,9 @@ impl Database {
                 Ok(Some(PackageMetadata {
                     package_id,
                     app_id,
-                    version: SemanticVersion::new(major, minor, patch),
+                    version: SemanticVersion::new(
+                        major, minor, patch,
+                    ),
                     publisher_id,
                     sha3_256_hash: hash,
                     file_size: size as u64,
@@ -276,25 +321,25 @@ impl Database {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT
-                p.app_id,
-                MAX(p.version_major) as vm,
-                MAX(p.version_minor) as vn,
-                MAX(p.version_patch) as vp,
-                (SELECT p2.publisher_id FROM packages p2
-                   WHERE p2.app_id = p.app_id
-                   ORDER BY p2.version_major DESC,
-                            p2.version_minor DESC,
-                            p2.version_patch DESC
-                   LIMIT 1) as latest_publisher,
-                (SELECT p2.published_at FROM packages p2
-                   WHERE p2.app_id = p.app_id
-                   ORDER BY p2.version_major DESC,
-                            p2.version_minor DESC,
-                            p2.version_patch DESC
-                   LIMIT 1) as last_published_at
+                 p.app_id,
+                 MAX(p.version_major) as vm,
+                 MAX(p.version_minor) as vn,
+                 MAX(p.version_patch) as vp,
+                 (SELECT p2.publisher_id FROM packages p2
+                  WHERE p2.app_id = p.app_id
+                  ORDER BY p2.version_major DESC,
+                           p2.version_minor DESC,
+                           p2.version_patch DESC
+                  LIMIT 1) as latest_publisher,
+                 (SELECT p2.published_at FROM packages p2
+                  WHERE p2.app_id = p.app_id
+                  ORDER BY p2.version_major DESC,
+                           p2.version_minor DESC,
+                           p2.version_patch DESC
+                  LIMIT 1) as last_published_at
              FROM packages p
              GROUP BY p.app_id
-             ORDER BY p.app_id ASC"
+             ORDER BY p.app_id ASC",
         )?;
 
         let apps = stmt
@@ -309,18 +354,33 @@ impl Database {
                 ))
             })?
             .filter_map(|r| r.ok())
-            .map(|(app_id, vm, vn, vp, latest_publisher, last_pub_str)| {
-                let latest_version = Some(SemanticVersion::new(vm, vn, vp));
-                let last_published_at = last_pub_str
-                    .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
-                    .map(|dt| dt.with_timezone(&Utc));
-                AppInfo {
+            .map(
+                |(
                     app_id,
-                    latest_version,
+                    vm,
+                    vn,
+                    vp,
                     latest_publisher,
-                    last_published_at,
-                }
-            })
+                    last_pub_str,
+                )| {
+                    let latest_version =
+                        Some(SemanticVersion::new(vm, vn, vp));
+                    let last_published_at = last_pub_str
+                        .and_then(|s| {
+                            chrono::DateTime::parse_from_rfc3339(
+                                &s,
+                            )
+                            .ok()
+                        })
+                        .map(|dt| dt.with_timezone(&Utc));
+                    AppInfo {
+                        app_id,
+                        latest_version,
+                        latest_publisher,
+                        last_published_at,
+                    }
+                },
+            )
             .collect();
 
         Ok(apps)
@@ -336,48 +396,61 @@ impl Database {
         password: &str,
     ) -> Result<()> {
         let conn = self.conn.lock().unwrap();
-        let salt = crate::auth::generate_salt();
-        let password_hash = crate::auth::hash_password(password, &salt);
+
+        // Argon2id — sól jest wbudowana w hash string
+        // Nie trzeba osobno przechowywać soli.
+        // Kolumna salt zostaje pusta dla kompatybilności schematu.
+        let password_hash = crate::auth::hash_password(password);
 
         conn.execute(
             "INSERT INTO publisher_accounts
-             (username, publisher_id, display_name, password_hash, salt, created_at, active)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1)",
+             (username, publisher_id, display_name,
+              password_hash, salt, created_at, active)
+             VALUES (?1, ?2, ?3, ?4, '', ?5, 1)",
             params![
                 username,
                 publisher_id,
                 display_name,
                 password_hash,
-                salt,
                 chrono::Utc::now().to_rfc3339(),
             ],
-        ).context("Failed to create publisher account")?;
+        )
+        .context("Failed to create publisher account")?;
 
         Ok(())
     }
 
-    pub fn verify_login(&self, username: &str, password: &str) -> Result<Option<(String, String)>> {
+    pub fn verify_login(
+        &self,
+        username: &str,
+        password: &str,
+    ) -> Result<Option<(String, String)>> {
         let conn = self.conn.lock().unwrap();
 
-        let result = conn.query_row(
-            "SELECT publisher_id, password_hash, salt, active
-             FROM publisher_accounts WHERE username = ?1",
-            params![username],
-            |row| Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, i32>(3)?,
-            )),
-        ).optional().context("Login query failed")?;
+        let result = conn
+            .query_row(
+                "SELECT publisher_id, password_hash, active
+                 FROM publisher_accounts WHERE username = ?1",
+                params![username],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, i32>(2)?,
+                    ))
+                },
+            )
+            .optional()
+            .context("Login query failed")?;
 
         match result {
             None => Ok(None),
-            Some((publisher_id, hash, salt, active)) => {
+            Some((publisher_id, hash, active)) => {
                 if active == 0 {
                     return Ok(None);
                 }
-                if crate::auth::verify_password(password, &salt, &hash) {
+                // Argon2id verify — nie potrzebuje osobnej soli
+                if crate::auth::verify_password(password, &hash) {
                     Ok(Some((username.to_string(), publisher_id)))
                 } else {
                     Ok(None)
@@ -395,7 +468,8 @@ impl Database {
     ) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
-            "INSERT INTO sessions (token, username, publisher_id, created_at, expires_at)
+            "INSERT INTO sessions
+             (token, username, publisher_id, created_at, expires_at)
              VALUES (?1, ?2, ?3, ?4, ?5)",
             params![
                 token,
@@ -404,32 +478,50 @@ impl Database {
                 chrono::Utc::now().to_rfc3339(),
                 expires_at.to_rfc3339(),
             ],
-        ).context("Failed to create session")?;
+        )
+        .context("Failed to create session")?;
         Ok(())
     }
 
-    pub fn verify_session(&self, token: &str) -> Result<Option<(String, String)>> {
+    pub fn verify_session(
+        &self,
+        token: &str,
+    ) -> Result<Option<(String, String)>> {
         let conn = self.conn.lock().unwrap();
 
-        let result = conn.query_row(
-            "SELECT username, publisher_id, expires_at FROM sessions WHERE token = ?1",
-            params![token],
-            |row| Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-            )),
-        ).optional().context("Session query failed")?;
+        let result = conn
+            .query_row(
+                "SELECT username, publisher_id, expires_at
+                 FROM sessions WHERE token = ?1",
+                params![token],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .optional()
+            .context("Session query failed")?;
 
         match result {
             None => Ok(None),
             Some((username, publisher_id, expires_str)) => {
-                let expires = chrono::DateTime::parse_from_rfc3339(&expires_str)
+                let expires =
+                    chrono::DateTime::parse_from_rfc3339(
+                        &expires_str,
+                    )
                     .map(|dt| dt.with_timezone(&chrono::Utc))
                     .unwrap_or_else(|_| chrono::Utc::now());
 
                 if chrono::Utc::now() > expires {
-                    conn.execute("DELETE FROM sessions WHERE token = ?1", params![token]).ok();
+                    // Usuń wygasłą sesję od razu
+                    conn.execute(
+                        "DELETE FROM sessions WHERE token = ?1",
+                        params![token],
+                    )
+                    .ok();
                     Ok(None)
                 } else {
                     Ok(Some((username, publisher_id)))
@@ -440,7 +532,22 @@ impl Database {
 
     pub fn delete_session(&self, token: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
-        conn.execute("DELETE FROM sessions WHERE token = ?1", params![token])?;
+        conn.execute(
+            "DELETE FROM sessions WHERE token = ?1",
+            params![token],
+        )?;
         Ok(())
+    }
+
+    /// Usuwa wszystkie wygasłe sesje z bazy.
+    /// Wywoływane co godzinę przez background task.
+    pub fn cleanup_expired_sessions(&self) -> Result<usize> {
+        let conn = self.conn.lock().unwrap();
+        let now = chrono::Utc::now().to_rfc3339();
+        let deleted = conn.execute(
+            "DELETE FROM sessions WHERE expires_at < ?1",
+            params![now],
+        )?;
+        Ok(deleted)
     }
 }
