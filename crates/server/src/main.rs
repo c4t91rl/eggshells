@@ -44,7 +44,7 @@ async fn main() -> Result<()> {
         },
     )));
 
-    // ── Background: czyszczenie wygasłych sesji ───────────────
+    // ── Background: czyszczenie wygasłych sesji ──────────────
     let cleanup_state = app_state.clone();
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(
@@ -89,10 +89,14 @@ async fn main() -> Result<()> {
             )
             .service(
                 web::scope("/api")
-                    // ── Public ───────────────────────────
+                    // ── Public ──────────────────────────
                     .route(
                         "/health",
                         web::get().to(api::health_check),
+                    )
+                    .route(
+                        "/client/integrity",
+                        web::get().to(api::client_integrity),
                     )
                     .route(
                         "/apps",
@@ -110,7 +114,7 @@ async fn main() -> Result<()> {
                         "/download/{app_id}/{version}",
                         web::get().to(api::download_package),
                     )
-                    // ── Auth ─────────────────────────────
+                    // ── Auth ────────────────────────────
                     .route(
                         "/auth/register",
                         web::post().to(api::register_account),
@@ -123,7 +127,7 @@ async fn main() -> Result<()> {
                         "/auth/logout",
                         web::post().to(api::logout),
                     )
-                    // ── Publisher (Bearer token) ──────────
+                    // ── Publisher (Bearer token) ────────
                     .route(
                         "/publishers",
                         web::post()

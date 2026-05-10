@@ -38,13 +38,11 @@ async fn verify_auth(
         Ok(Some((username, publisher_id))) => {
             Ok((username, publisher_id))
         }
-        Ok(None) => {
-            Err(HttpResponse::Unauthorized().json(
-                serde_json::json!({
-                    "error": "Invalid or expired session"
-                }),
-            ))
-        }
+        Ok(None) => Err(HttpResponse::Unauthorized().json(
+            serde_json::json!({
+                "error": "Invalid or expired session"
+            }),
+        )),
         Err(e) => Err(HttpResponse::InternalServerError()
             .json(serde_json::json!({
                 "error": format!("{}", e)
@@ -56,7 +54,6 @@ async fn verify_auth(
 //  AUTH ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
 
-/// POST /api/auth/register
 pub async fn register_account(
     state: SharedState,
     body: web::Json<crate::auth::RegisterAccountRequest>,
@@ -106,25 +103,22 @@ pub async fn register_account(
     }
 }
 
-/// POST /api/auth/login
 pub async fn login(
     state: SharedState,
     body: web::Json<crate::auth::LoginRequest>,
     req: HttpRequest,
 ) -> HttpResponse {
-    // Klucz rate limitera: IP + username
     let client_ip = req
         .peer_addr()
         .map(|a| a.ip().to_string())
         .unwrap_or_else(|| "unknown".to_string());
 
-    let rate_key =
-        format!("{}:{}", client_ip, body.username);
+    let rate_key = format!("{}:{}", client_ip, body.username);
 
     let app_state = state.read().await;
 
-    // Sprawdź limit PRZED weryfikacją hasła
-    if !app_state.login_limiter.check_and_record(&rate_key) {
+    if !app_state.login_limiter.check_and_record(&rate_key)
+    {
         warn!("🚫 Rate limit exceeded: {}", rate_key);
         return HttpResponse::TooManyRequests().json(
             serde_json::json!({
@@ -139,12 +133,11 @@ pub async fn login(
         &body.password,
     ) {
         Ok(Some((username, publisher_id))) => {
-            // Udane logowanie — resetuj licznik
             app_state.login_limiter.reset(&rate_key);
 
             let token = crate::auth::generate_session_token();
-            let expires_at =
-                chrono::Utc::now() + chrono::Duration::hours(24);
+            let expires_at = chrono::Utc::now()
+                + chrono::Duration::hours(24);
 
             if let Err(e) = app_state.db.create_session(
                 &token,
@@ -183,7 +176,6 @@ pub async fn login(
     }
 }
 
-/// POST /api/auth/logout
 pub async fn logout(
     state: SharedState,
     req: HttpRequest,
@@ -200,7 +192,6 @@ pub async fn logout(
 //  PUBLIC ENDPOINTS
 // ═══════════════════════════════════════════════════════════════
 
-/// GET /api/health
 pub async fn health_check() -> HttpResponse {
     HttpResponse::Ok().json(serde_json::json!({
         "status": "ok",
@@ -215,13 +206,61 @@ pub async fn health_check() -> HttpResponse {
     }))
 }
 
-/// GET /api/apps
+/// GET /api/client/integrity
+///
+/// Zwraca oczekiwane hashe binarek klienta dla różnych platform.
+/// Klient pobiera ten hash przy starcie i porównuje z własnym.
+///
+/// Plik źródłowy: ./server_data/client_hashes.json
+/// Aktualizowany przez skrypt scripts/release_with_server_integrity.sh
+pub async fn client_integrity() -> HttpResponse {
+    let hashes_path = "./server_data/client_hashes.json";
+
+    let hashes = match std::fs::read_to_string(hashes_path)
+    {
+        Ok(content) => {
+            match serde_json::from_str::<serde_json::Value>(
+                &content,
+            ) {
+                Ok(v) => v,
+                Err(e) => {
+                    error!(
+                        "Invalid client_hashes.json: {}",
+                        e
+                    );
+                    return HttpResponse::InternalServerError(
+                    )
+                    .json(serde_json::json!({
+                        "available": false,
+                        "error": format!(
+                            "Invalid hashes file: {}", e
+                        )
+                    }));
+                }
+            }
+        }
+        Err(_) => {
+            // Brak pliku = brak weryfikacji
+            return HttpResponse::Ok().json(
+                serde_json::json!({
+                    "available": false,
+                    "message": "No client integrity hashes configured"
+                }),
+            );
+        }
+    };
+
+    HttpResponse::Ok().json(serde_json::json!({
+        "available": true,
+        "hashes": hashes
+    }))
+}
+
 pub async fn list_apps(state: SharedState) -> HttpResponse {
     let app_state = state.read().await;
     match app_state.db.list_apps() {
-        Ok(apps) => {
-            HttpResponse::Ok().json(ListAppsResponse { apps })
-        }
+        Ok(apps) => HttpResponse::Ok()
+            .json(ListAppsResponse { apps }),
         Err(e) => HttpResponse::InternalServerError()
             .json(serde_json::json!({
                 "error": format!("{}", e)
@@ -229,7 +268,6 @@ pub async fn list_apps(state: SharedState) -> HttpResponse {
     }
 }
 
-/// GET /api/publishers
 pub async fn list_publishers(
     state: SharedState,
 ) -> HttpResponse {
@@ -243,7 +281,6 @@ pub async fn list_publishers(
     }
 }
 
-/// POST /api/check/{app_id}
 pub async fn check_update(
     state: SharedState,
     path: web::Path<String>,
@@ -254,8 +291,9 @@ pub async fn check_update(
 
     match app_state.db.get_latest_package(&app_id) {
         Ok(Some(latest)) => {
-            let update_available =
-                latest.version.is_newer_than(&body.current_version);
+            let update_available = latest
+                .version
+                .is_newer_than(&body.current_version);
 
             let publisher_key = app_state
                 .db
@@ -286,13 +324,13 @@ pub async fn check_update(
                 },
             })
         }
-        Ok(None) => {
-            HttpResponse::Ok().json(CheckUpdateResponse {
+        Ok(None) => HttpResponse::Ok().json(
+            CheckUpdateResponse {
                 update_available: false,
                 latest_package: None,
                 publisher_public_key: None,
-            })
-        }
+            },
+        ),
         Err(e) => HttpResponse::InternalServerError()
             .json(serde_json::json!({
                 "error": format!("{}", e)
@@ -300,7 +338,6 @@ pub async fn check_update(
     }
 }
 
-/// GET /api/download/{app_id}/{version}
 pub async fn download_package(
     state: SharedState,
     path: web::Path<(String, String)>,
@@ -308,13 +345,17 @@ pub async fn download_package(
     let (app_id, version) = path.into_inner();
     let app_state = state.read().await;
 
-    if !app_state.storage.package_exists(&app_id, &version) {
-        return HttpResponse::NotFound().json(serde_json::json!({
-            "error": "Package not found"
-        }));
+    if !app_state.storage.package_exists(&app_id, &version)
+    {
+        return HttpResponse::NotFound().json(
+            serde_json::json!({
+                "error": "Package not found"
+            }),
+        );
     }
 
-    match app_state.storage.read_package(&app_id, &version) {
+    match app_state.storage.read_package(&app_id, &version)
+    {
         Ok(data) => {
             info!(
                 "📥 Download: {} v{} ({} bytes)",
@@ -344,7 +385,6 @@ pub async fn download_package(
 //  PUBLISHER ENDPOINTS (require auth token)
 // ═══════════════════════════════════════════════════════════════
 
-/// POST /api/publishers
 pub async fn register_publisher(
     state: SharedState,
     body: web::Json<RegisterPublisherRequest>,
@@ -398,7 +438,6 @@ pub async fn register_publisher(
     }
 }
 
-/// POST /api/packages/upload/{publisher_id}/{app_id}/{version}
 pub async fn upload_package(
     state: SharedState,
     path: web::Path<(String, String, String)>,
@@ -452,7 +491,6 @@ pub async fn upload_package(
     }
 }
 
-/// POST /api/packages/metadata
 pub async fn publish_metadata(
     state: SharedState,
     body: web::Json<PublishPackageRequest>,
@@ -472,24 +510,18 @@ pub async fn publish_metadata(
 
     let app_state = state.read().await;
 
-    // Pobierz publishera i jego klucze publiczne
     let publisher =
         match app_state.db.get_publisher(&body.publisher_id) {
             Ok(Some(p)) => p,
-            Ok(None) => {
-                return HttpResponse::NotFound().json(
-                    serde_json::json!({
-                        "error": "Publisher keys not found. \
-                                  Register keys first."
-                    }),
-                )
-            }
-            Err(e) => {
-                return HttpResponse::InternalServerError()
-                    .json(serde_json::json!({
-                        "error": format!("{}", e)
-                    }))
-            }
+            Ok(None) => return HttpResponse::NotFound().json(
+                serde_json::json!({
+                    "error": "Publisher keys not found. Register keys first."
+                }),
+            ),
+            Err(e) => return HttpResponse::InternalServerError()
+                .json(serde_json::json!({
+                    "error": format!("{}", e)
+                })),
         };
 
     if !publisher.active {
@@ -498,23 +530,18 @@ pub async fn publish_metadata(
         }));
     }
 
-    // Wczytaj wcześniej wgrany plik
     let package_data = match app_state.storage.read_package(
         &body.app_id,
         &body.version.to_string(),
     ) {
         Ok(data) => data,
-        Err(_) => {
-            return HttpResponse::BadRequest().json(
-                serde_json::json!({
-                    "error": "Package file not found. \
-                              Upload the file first."
-                }),
-            )
-        }
+        Err(_) => return HttpResponse::BadRequest().json(
+            serde_json::json!({
+                "error": "Package file not found. Upload first."
+            }),
+        ),
     };
 
-    // Zbuduj tymczasowe metadata do weryfikacji
     let temp_metadata = PackageMetadata {
         package_id: String::new(),
         app_id: body.app_id.clone(),
@@ -531,7 +558,6 @@ pub async fn publish_metadata(
         changelog: body.changelog.clone(),
     };
 
-    // Weryfikacja podpisu na serwerze
     match crate::publisher::verify_package_on_publish(
         &temp_metadata,
         &package_data,
@@ -558,15 +584,12 @@ pub async fn publish_metadata(
                 }),
             );
         }
-        Err(e) => {
-            return HttpResponse::InternalServerError()
-                .json(serde_json::json!({
-                    "error": format!("Verification error: {}", e)
-                }))
-        }
+        Err(e) => return HttpResponse::InternalServerError()
+            .json(serde_json::json!({
+                "error": format!("Verification error: {}", e)
+            })),
     }
 
-    // Zapisz metadane z wygenerowanym UUID
     let metadata = PackageMetadata {
         package_id: Uuid::new_v4().to_string(),
         ..temp_metadata
