@@ -4,6 +4,7 @@ use crate::verifier::VerificationReport;
 
 pub fn fetch_apps(server_url: &str) -> Result<ListAppsResponse> {
     let client = reqwest::blocking::Client::builder()
+        .danger_accept_invalid_certs(true)
         .timeout(std::time::Duration::from_secs(30))
         .build()?;
 
@@ -29,6 +30,7 @@ pub fn check_for_update(
     current_version: &SemanticVersion,
 ) -> Result<CheckUpdateResponse> {
     let client = reqwest::blocking::Client::builder()
+        .danger_accept_invalid_certs(true)
         .timeout(std::time::Duration::from_secs(30))
         .build()?;
 
@@ -61,6 +63,7 @@ pub fn download_package(
     version: &str,
 ) -> Result<Vec<u8>> {
     let client = reqwest::blocking::Client::builder()
+        .danger_accept_invalid_certs(true)
         .timeout(std::time::Duration::from_secs(300))
         .build()?;
 

@@ -46,5 +46,13 @@
     "hash": "da596488028d036c616a018c7b8683b164c1fdf6678cdf4193c7ef9ab7753aae",
     "timestamp": "2026-05-10T10:12:21.384754302+00:00",
     "server": "https://127.0.0.1:8443"
+  },
+  {
+    "app_id": "ggg",
+    "version": "1.0.0",
+    "publisher_id": "123",
+    "hash": "da596488028d036c616a018c7b8683b164c1fdf6678cdf4193c7ef9ab7753aae",
+    "timestamp": "2026-05-10T10:26:40.830709445+00:00",
+    "server": "https://127.0.0.1:8443"
   }
 ]
