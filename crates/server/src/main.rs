@@ -20,7 +20,7 @@ mod publisher;
 mod storage;
 
 use actix_cors::Cors;
-use actix_web::{web, App, HttpServer, middleware}; // <= ignore
+use actix_web::{web, App, HttpServer}; // <= ignore
 use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::RwLock;
