@@ -1,6 +1,7 @@
 use chrono::Utc;
 use eframe::egui;
 use secure_update_common::*;
+use std::path::PathBuf;  // ← add this
 
 use crate::verifier::VerificationReport;
 use crate::{anti_tamper, config, updater};
@@ -48,6 +49,7 @@ pub struct UpdateApp {
 
     apps_list: Vec<AppInfo>,
     selected_server: String,
+    cert_path: Option<PathBuf>,
     new_server_input: String,
 
     active_app_id: String,
@@ -69,12 +71,12 @@ pub struct UpdateApp {
 }
 
 impl UpdateApp {
-    pub fn new() -> Self {
-        let config =
-            config::load_or_create_config().unwrap_or_default();
+    pub fn new(cert_path: Option<PathBuf>) -> Self {
+        let config = config::load_or_create_config().unwrap_or_default();
 
         let mut app = Self {
             selected_server: config.selected_server.clone(),
+            cert_path,
             new_server_input: String::new(),
             apps_list: Vec::new(),
             active_app_id: config.app_id.clone(),
@@ -160,29 +162,54 @@ impl eframe::App for UpdateApp {
             ui.horizontal(|ui| {
                 ui.heading("Secure Update Manager");
                 ui.separator();
-                ui.selectable_value(&mut self.active_tab, Tab::Apps, "🌐 Apps");
-                ui.selectable_value(&mut self.active_tab, Tab::Dashboard, "📊 Dashboard");
-                ui.selectable_value(&mut self.active_tab, Tab::Security, "🛡 Security");
-                ui.selectable_value(&mut self.active_tab, Tab::Settings, "⚙ Settings");
-                ui.selectable_value(&mut self.active_tab, Tab::Logs, "📋 Logs");
+                ui.selectable_value(
+                    &mut self.active_tab,
+                    Tab::Apps,
+                    "🌐 Apps",
+                );
+                ui.selectable_value(
+                    &mut self.active_tab,
+                    Tab::Dashboard,
+                    "📊 Dashboard",
+                );
+                ui.selectable_value(
+                    &mut self.active_tab,
+                    Tab::Security,
+                    "🛡 Security",
+                );
+                ui.selectable_value(
+                    &mut self.active_tab,
+                    Tab::Settings,
+                    "⚙ Settings",
+                );
+                ui.selectable_value(
+                    &mut self.active_tab,
+                    Tab::Logs,
+                    "📋 Logs",
+                );
             });
         });
 
-        // Status bar
-        egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                let status = match &self.update_state {
-                    UpdateState::UpToDate => "✅ Ready",
-                    UpdateState::Checking => "🔄 Checking...",
-                    UpdateState::UpdateAvailable { .. } => "📦 Update available",
-                    UpdateState::Downloading { .. } => "⬇ Downloading...",
-                    UpdateState::Verifying => "🔍 Verifying...",
-                    UpdateState::ReadyToInstall => "✅ Ready to install",
-                    UpdateState::Installing => "⚙ Installing...",
-                    UpdateState::Completed => "🎉 Done",
-                    UpdateState::Error { .. } => "❌ Error",
-                };
-                ui.label(status);
+        egui::TopBottomPanel::bottom("bottom").show(
+            ctx,
+            |ui| {
+                ui.horizontal(|ui| {
+                    let status = match &self.update_state {
+                        UpdateState::UpToDate => "✅ Ready",
+                        UpdateState::Checking => "🔄 Checking...",
+                        UpdateState::UpdateAvailable { .. } => {
+                            "📦 Update available"
+                        }
+                        UpdateState::Downloading { .. } => {
+                            "⬇️ Downloading..."
+                        }
+                        UpdateState::Verifying => "🔍 Verifying...",
+                        UpdateState::ReadyToInstall => "✅ Ready to install",
+                        UpdateState::Installing => "⚙ Installing...",
+                        UpdateState::Completed => "🎉 Done",
+                        UpdateState::Error { .. } => "❌ Error",
+                    };
+                    ui.label(status);
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let dot = match &self.health_info {
@@ -241,7 +268,7 @@ impl UpdateApp {
                 ui.text_edit_singleline(
                     &mut self.new_server_input,
                 )
-                .on_hover_text("http://host:port");
+                .on_hover_text("https://host:port");
 
                 if ui
                     .button("➕")
@@ -274,7 +301,7 @@ impl UpdateApp {
                         .retain(|s| *s != rm);
                     if self.config.servers.is_empty() {
                         self.config.servers.push(
-                            "http://127.0.0.1:8443".into(),
+                            "https://127.0.0.1:8443".into(),
                         );
                     }
                     let first = self.config.servers[0].clone();
@@ -755,16 +782,10 @@ impl UpdateApp {
                 ),
                 ("✅", "Key compromise", "Hybrid scheme (PQ + classical)"),
                 ("✅", "Replay attacks", "Timestamped signatures"),
-                (
-                    "✅",
-                    "Client tampering",
-                    "Self-integrity + debugger detection",
-                ),
-                (
-                    "⚠",
-                    "Transport security",
-                    "HTTP in prototype (TLS 1.3 in production)",
-                ),
+                ("✅", "Client tampering", "Server-verified self-integrity"),
+                ("✅", "Brute-force login", "Rate limit (5/60s) + Argon2id"),
+                ("✅", "Path traversal", "Filename sanitization"),
+                ("✅", "Transport security", "HTTPS fully suported"),
             ];
             egui::Grid::new("prot_grid")
                 .num_columns(3)
@@ -980,10 +1001,24 @@ impl UpdateApp {
 
         let start = std::time::Instant::now();
 
-        match reqwest::blocking::Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
-            .build()
-            .and_then(|c| c.get(&url).send())
+        // match reqwest::blocking::Client::builder()
+        //     .timeout(std::time::Duration::from_secs(10))
+        //     .build()
+        //     .and_then(|c| c.get(&url).send())
+
+        let mut client_builder = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_secs(10));
+
+            if let Some(ref cert_path) = self.cert_path {
+                if let Ok(pem) = std::fs::read(cert_path) {
+                    if let Ok(cert) = reqwest::Certificate::from_pem(&pem) {
+                        client_builder = client_builder.add_root_certificate(cert);
+                    }
+                }
+            }
+
+            match client_builder.build().and_then(|c| c.get(&url).send())
+
         {
             Ok(resp) if resp.status().is_success() => {
                 let latency = start.elapsed().as_millis();
@@ -1080,7 +1115,7 @@ impl UpdateApp {
 
         let report =
             anti_tamper::full_hardening_check_with_server(
-                &self.selected_server,
+                &self.selected_server, self.cert_path.as_deref()
             );
 
         if report.overall_safe {
