@@ -26,6 +26,7 @@ use clap::{Parser, Subcommand};
 use secure_update_common::*;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use reqwest::Certificate;
 
 #[derive(Parser)]
 #[command(name = "publisher-tool")]
@@ -61,7 +62,7 @@ enum Commands {
         #[arg(long)]
         display_name: String,
         /// URL serwera
-        #[arg(long, default_value = "http://127.0.0.1:8443")]
+        #[arg(long, default_value = "https://127.0.0.1:8443")]
         server: String,
     },
     /// Zaloguj się i pobierz token sesji
@@ -73,7 +74,7 @@ enum Commands {
         #[arg(long)]
         password: String,
         /// URL serwera
-        #[arg(long, default_value = "http://127.0.0.1:8443")]
+        #[arg(long, default_value = "https://127.0.0.1:8443")]
         server: String,
     },
     /// Zarejestruj publishera na serwerze
@@ -82,7 +83,7 @@ enum Commands {
         #[arg(long)]
         keys: PathBuf,
         /// URL serwera
-        #[arg(long, default_value = "http://127.0.0.1:8443")]
+        #[arg(long, default_value = "https://127.0.0.1:8443")]
         server: String,
         /// Nazwa wyświetlana
         #[arg(long)]
@@ -97,7 +98,7 @@ enum Commands {
         #[arg(long)]
         keys: PathBuf,
         /// URL serwera
-        #[arg(long, default_value = "http://127.0.0.1:8443")]
+        #[arg(long, default_value = "https://127.0.0.1:8443")]
         server: String,
         /// Token sesji otrzymany po logowaniu
         #[arg(long)]
@@ -274,7 +275,13 @@ async fn create_account(
         display_name,
     };
 
-    let client = reqwest::Client::new();
+    let cert_pem = std::fs::read("server_data/certs/cert.pem")?;
+    let cert = Certificate::from_pem(&cert_pem)?;
+
+    let client = reqwest::Client::builder()
+    .add_root_certificate(cert)          // ← trust only your cert
+    .build()?;
+
     let response = client
         .post(format!("{}/api/auth/register", server))
         .json(&request)
@@ -298,7 +305,14 @@ async fn login(username: &str, password: &str, server: &str) -> Result<()> {
     println!("Logging in to {}...", server);
 
     let request = AuthRequest { username, password };
-    let client = reqwest::Client::new();
+
+    let cert_pem = std::fs::read("server_data/certs/cert.pem")?;
+    let cert = Certificate::from_pem(&cert_pem)?;
+
+    let client = reqwest::Client::builder()
+    .add_root_certificate(cert)          // ← trust only your cert
+    .build()?;
+
     let response = client
         .post(format!("{}/api/auth/login", server))
         .json(&request)
@@ -335,7 +349,13 @@ async fn register_publisher(
         public_key,
     };
 
-    let client = reqwest::Client::new();
+    let cert_pem = std::fs::read("server_data/certs/cert.pem")?;
+    let cert = Certificate::from_pem(&cert_pem)?;
+
+    let client = reqwest::Client::builder()
+    .add_root_certificate(cert)          // ← trust only your cert
+    .build()?;
+
     let response = client
         .post(format!("{}/api/publishers", server))
         .header("Authorization", format!("Bearer {}", token))
@@ -399,7 +419,13 @@ async fn publish_package(
 
     // 1. Upload pliku
     println!( " Uploading package file...");
-    let client = reqwest::Client::new();
+
+    let cert_pem = std::fs::read("server_data/certs/cert.pem")?;
+    let cert = Certificate::from_pem(&cert_pem)?;
+
+    let client = reqwest::Client::builder()
+    .add_root_certificate(cert)          // ← trust only your cert
+    .build()?;
 
     let upload_resp = client
         .post(format!(
