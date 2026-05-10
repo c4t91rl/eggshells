@@ -178,16 +178,9 @@ pub struct ClientConfig {
 impl Default for ClientConfig {
     fn default() -> Self {
         Self {
-<<<<<<< Updated upstream
-            servers: vec![
-                "http://127.0.0.1:8443".to_string(),
-            ],
-            selected_server: "http://127.0.0.1:8443"
-                .to_string(),
-=======
             servers: vec!["https://127.0.0.1:8443".to_string()],
             selected_server: "https://127.0.0.1:8443".to_string(),
->>>>>>> Stashed changes
+
             app_id: "example-app".to_string(),
             current_version: SemanticVersion::new(1, 0, 0),
             download_dir: "./downloads".to_string(),
