@@ -391,7 +391,10 @@ impl PublisherApp {
                 .spacing([8.0, 4.0])
                 .show(ui, |ui| {
                     ui.label("Publisher ID:");
-                    ui.text_edit_singleline(&mut self.publisher_id_input);
+                    ui.add_enabled(
+                        false, // false = zablokowane pole
+                        egui::TextEdit::singleline(&mut self.publisher_id_input)
+                    );
                     ui.end_row();
                     ui.label("Output dir:");
                     ui.text_edit_singleline(&mut self.keys_output_dir);
@@ -611,6 +614,13 @@ impl PublisherApp {
                 self.auth_token = data["token"].as_str().map(|s| s.into());
                 self.session_publisher_id =
                     data["publisher_id"].as_str().map(|s| s.into());
+                
+                // 🔴 DODANY KOD: Nadpisz input do generowania kluczy prawdziwym ID z serwera
+                if let Some(ref pub_id) = self.session_publisher_id {
+                    self.publisher_id_input = pub_id.clone();
+                }
+                // --------------------------------------------------------
+
                 self.screen = Screen::Main;
                 self.password.clear();
                 self.auth_error.clear();
@@ -758,6 +768,16 @@ impl PublisherApp {
                 return;
             }
         };
+
+        if let Some(ref session_id) = self.session_publisher_id {
+            if kp.publisher_id != *session_id {
+                self.log(
+                    LogLevel::Error, 
+                    &format!("Błąd: Klucze należą do '{}', a jesteś zalogowany jako '{}'", kp.publisher_id, session_id)
+                );
+                return;
+            }
+        }
 
         let client = self.http_client();
         let req = RegisterPublisherRequest {
