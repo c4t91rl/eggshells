@@ -3,7 +3,7 @@
 # Skrypt analizy statycznej kodu (SAST)
 
 echo "═══════════════════════════════════════"
-echo "  SAST Analysis - Secure Update System"
+echo  "SAST Analysis - Secure Update System"
 echo "═══════════════════════════════════════"
 
 echo ""
@@ -41,13 +41,13 @@ fi
 echo ""
 echo "5. Checking for common security issues..."
 echo "─────────────────────────────────────────"
-echo "   Searching for unwrap() calls (potential panics)..."
+echo  " Searching for unwrap() calls (potential panics)..."
 grep -rn "\.unwrap()" crates/ --include="*.rs" | grep -v "test" | grep -v "#\[cfg(test)\]" | head -20
 echo ""
-echo "   Searching for unsafe blocks..."
+echo  " Searching for unsafe blocks..."
 grep -rn "unsafe" crates/ --include="*.rs" | head -20
 
 echo ""
 echo "═══════════════════════════════════════"
-echo "  SAST Analysis Complete"
+echo  "SAST Analysis Complete"
 echo "═══════════════════════════════════════"

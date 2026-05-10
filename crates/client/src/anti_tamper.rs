@@ -24,16 +24,16 @@ use tracing::{info, warn};
 pub fn perform_self_integrity_check() -> Result<()> {
     let exe_path = std::env::current_exe()?;
 
-    info!("  Self-integrity check: {}", exe_path.display());
+    info!( "Self-integrity check: {}", exe_path.display());
 
     // Sprawdź rozmiar pliku (szybki sanity check)
     let metadata = std::fs::metadata(&exe_path)?;
-    info!("   Executable size: {} bytes", metadata.len());
+    info!( " Executable size: {} bytes", metadata.len());
 
     // Oblicz hash (w produkcji porównać z wbudowanym)
     let exe_data = std::fs::read(&exe_path)?;
     let hash = secure_update_common::compute_sha3_256_hex(&exe_data);
-    info!("   Executable SHA3-256: {}...{}", &hash[..16], &hash[hash.len()-16..]);
+    info!( " Executable SHA3-256: {}...{}", &hash[..16], &hash[hash.len()-16..]);
 
     Ok(())
 }
@@ -57,7 +57,7 @@ pub fn check_debugger() -> bool {
                         .and_then(|s| s.parse().ok())
                         .unwrap_or(0);
                     if tracer_pid != 0 {
-                        warn!("  Debugger detected! TracerPid: {}", tracer_pid);
+                        warn!( "Debugger detected! TracerPid: {}", tracer_pid);
                         return true;
                     }
                 }
@@ -74,7 +74,7 @@ pub fn check_debugger() -> bool {
         }
         let detected = unsafe { IsDebuggerPresent() != 0 };
         if detected {
-            warn!("  Debugger detected! (IsDebuggerPresent)");
+            warn!( "Debugger detected! (IsDebuggerPresent)");
         }
         detected
     }
@@ -99,7 +99,7 @@ pub fn check_environment() -> Vec<String> {
     for var in &suspicious_vars {
         if std::env::var(var).is_ok() {
             let msg = format!("Suspicious environment variable set: {}", var);
-            warn!("  {}", msg);
+            warn!( "{}", msg);
             warnings.push(msg);
         }
     }

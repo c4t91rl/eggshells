@@ -22,7 +22,7 @@ async fn main() -> Result<()> {
         .with_target(false)
         .init();
 
-    info!("  Starting Secure Update Server...");
+    info!( "Starting Secure Update Server...");
 
     std::fs::create_dir_all("./server_data/packages")?;
     std::fs::create_dir_all("./server_data/db")?;
@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
         storage,
     })));
 
-    info!("  Listening on http://127.0.0.1:8443");
+    info!( "Listening on http://127.0.0.1:8443");
 
     HttpServer::new(move || {
         let cors = Cors::default()

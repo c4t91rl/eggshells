@@ -113,27 +113,27 @@ impl VerificationReport {
     pub fn summary(&self) -> String { // <= never used
         let mut lines = Vec::new();
         lines.push(format!("═══ Verification Report ═══"));
-        lines.push(format!("  File size:      {}", status_icon(self.size_check)));
-        lines.push(format!("  SHA3-256 hash:  {}", status_icon(self.hash_check)));
-        lines.push(format!("  Dilithium sig:  {}", status_icon(self.dilithium_valid)));
-        lines.push(format!("  Ed25519 sig:    {}", status_icon(self.ed25519_valid)));
-        lines.push(format!("  Version check:  {}", status_icon(self.version_check)));
-        lines.push(format!("  Publisher:      {}", status_icon(self.publisher_check)));
-        lines.push(format!("  ─────────────────────"));
+        lines.push(format!( "File size:      {}", status_icon(self.size_check)));
+        lines.push(format!( "SHA3-256 hash:  {}", status_icon(self.hash_check)));
+        lines.push(format!( "Dilithium sig:  {}", status_icon(self.dilithium_valid)));
+        lines.push(format!( "Ed25519 sig:    {}", status_icon(self.ed25519_valid)));
+        lines.push(format!( "Version check:  {}", status_icon(self.version_check)));
+        lines.push(format!( "Publisher:      {}", status_icon(self.publisher_check)));
+        lines.push(format!( "─────────────────────"));
         lines.push(format!(
-            "  OVERALL:        {}",
+             "OVERALL:        {}",
             if self.overall_valid {
-                "  PASSED"
+                 "PASSED"
             } else {
-                "  FAILED"
+                 "FAILED"
             }
         ));
 
         if !self.errors.is_empty() {
             lines.push(format!(""));
-            lines.push(format!("  Errors:"));
+            lines.push(format!( "Errors:"));
             for err in &self.errors {
-                lines.push(format!("      {}", err));
+                lines.push(format!(   "{}", err));
             }
         }
 
@@ -143,8 +143,8 @@ impl VerificationReport {
 
 fn status_icon(ok: bool) -> &'static str { // <= it literally causes errors if i remove it, how is this supposed to be unused????
     if ok {
-        "  PASS"
+         "PASS"
     } else {
-        "  FAIL"
+         "FAIL"
     }
 } //idk czy to kiedykolwiek użyjemy

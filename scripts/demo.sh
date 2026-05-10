@@ -5,14 +5,14 @@
 set -e
 
 echo "═══════════════════════════════════════════════════"
-echo "  Secure Update System - Full Demo"
+echo  "Secure Update System - Full Demo"
 echo "═══════════════════════════════════════════════════"
 echo ""
 
 # 1. Budowanie
 echo "1. Building all components..."
 cargo build --release
-echo "     Build complete"
+echo   " Build complete"
 echo ""
 
 # 2. Uruchom serwer w tle
@@ -20,7 +20,7 @@ echo "2. Starting update server..."
 cargo run --release -p secure-update-server &
 SERVER_PID=$!
 sleep 2
-echo "     Server started (PID: $SERVER_PID)"
+echo   " Server started (PID: $SERVER_PID)"
 echo ""
 
 # 3. Generowanie kluczy publishera
@@ -59,17 +59,17 @@ echo ""
 
 # 7. Uruchom klienta GUI
 echo "7. Starting update client GUI..."
-echo "   (The client will check for updates from the server)"
+echo  " (The client will check for updates from the server)"
 cargo run --release -p secure-update-client &
 CLIENT_PID=$!
 
 echo ""
 echo "═══════════════════════════════════════════════════"
-echo "  Demo running!"
-echo "  Server PID: $SERVER_PID"
-echo "  Client PID: $CLIENT_PID"
+echo  "Demo running!"
+echo  "Server PID: $SERVER_PID"
+echo  "Client PID: $CLIENT_PID"
 echo ""
-echo "  Press Enter to stop demo..."
+echo  "Press Enter to stop demo..."
 echo "═══════════════════════════════════════════════════"
 
 read
