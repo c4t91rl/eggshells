@@ -1,12 +1,7 @@
-// crates/common/src/models.rs
-//! # Modele danych
-//!
-//! Definicje struktur danych używanych w komunikacji między
-//! serwerem, klientem i narzędziem publishera.
-
+use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-//use uuid::Uuid;niepotrzebny import, odkomentuj jesli będzie potrzeba
+use uuid::Uuid;
 
 use crate::crypto::HybridPublicKey;
 use crate::crypto::HybridSignature;
@@ -15,46 +10,28 @@ use crate::version::SemanticVersion;
 /// Informacje o zarejestrowanym publisherze
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PublisherInfo {
-    /// Unikalny identyfikator publishera
     pub id: String,
-    /// Nazwa wyświetlana
     pub display_name: String,
-    /// Klucz publiczny (hybrydowy: Dilithium + Ed25519)
     pub public_key: HybridPublicKey,
-    /// Data rejestracji
     pub registered_at: DateTime<Utc>,
-    /// Czy publisher jest aktywny
     pub active: bool,
 }
 
 /// Metadata pakietu aktualizacji
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PackageMetadata {
-    /// Unikalny ID pakietu
     pub package_id: String,
-    /// ID aplikacji której dotyczy aktualizacja
     pub app_id: String,
-    /// Wersja pakietu
     pub version: SemanticVersion,
-    /// ID publishera który podpisał pakiet
     pub publisher_id: String,
-    /// SHA3-256 hash pliku pakietu (hex)
     pub sha3_256_hash: String,
-    /// Rozmiar pliku w bajtach
     pub file_size: u64,
-    /// Nazwa pliku
     pub filename: String,
-    /// Opis aktualizacji
     pub description: String,
-    /// Platformy docelowe
     pub target_platforms: Vec<Platform>,
-    /// Hybrydowy podpis cyfrowy
     pub signature: HybridSignature,
-    /// Data publikacji
     pub published_at: DateTime<Utc>,
-    /// Minimalna wersja od której można aktualizować
     pub min_upgrade_from: Option<SemanticVersion>,
-    /// Changelog
     pub changelog: Vec<String>,
 }
 
@@ -72,7 +49,6 @@ pub enum Platform {
 }
 
 impl Platform {
-    /// Zwraca platformę bieżącego systemu
     pub fn current() -> Self {
         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
         return Platform::LinuxX86_64;
@@ -100,11 +76,8 @@ pub struct CheckUpdateRequest {
 /// Odpowiedź na sprawdzenie aktualizacji
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CheckUpdateResponse {
-    /// Czy dostępna jest nowsza wersja
     pub update_available: bool,
-    /// Metadata najnowszego pakietu (jeśli dostępny)
     pub latest_package: Option<PackageMetadata>,
-    /// Klucz publiczny publishera (do weryfikacji podpisu)
     pub publisher_public_key: Option<HybridPublicKey>,
 }
 
@@ -115,7 +88,7 @@ pub struct RegisterPublisherRequest {
     pub public_key: HybridPublicKey,
 }
 
-/// Żądanie publikacji pakietu (metadata, bez pliku binarnego)
+/// Żądanie publikacji pakietu
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PublishPackageRequest {
     pub app_id: String,
@@ -131,31 +104,48 @@ pub struct PublishPackageRequest {
     pub changelog: Vec<String>,
 }
 
+/// Informacja o dostępnej aplikacji (z serwera)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppInfo {
+    pub app_id: String,
+    pub latest_version: Option<SemanticVersion>,
+    pub latest_publisher: Option<String>,
+    pub last_published_at: Option<DateTime<Utc>>,
+}
+
+/// Odpowiedź listy aplikacji
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListAppsResponse {
+    pub apps: Vec<AppInfo>,
+}
+
+/// Informacja o zainstalowanej aplikacji (lokalnie)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InstalledApp {
+    pub server_url: String,
+    pub app_id: String,
+    pub installed_version: SemanticVersion,
+    pub install_dir: String,
+    pub installed_at: DateTime<Utc>,
+    pub last_verified_at: Option<DateTime<Utc>>,
+}
+
 /// Stan aktualizacji po stronie klienta
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum UpdateState {
-    /// Brak aktualizacji
     UpToDate,
-    /// Sprawdzanie aktualizacji
     Checking,
-    /// Dostępna aktualizacja
     UpdateAvailable {
         version: SemanticVersion,
         description: String,
     },
-    /// Pobieranie
     Downloading {
         progress_percent: f32,
     },
-    /// Weryfikacja podpisu i integralności
     Verifying,
-    /// Gotowy do instalacji
     ReadyToInstall,
-    /// Instalowanie
     Installing,
-    /// Zakończono
     Completed,
-    /// Błąd
     Error {
         message: String,
     },
@@ -164,33 +154,42 @@ pub enum UpdateState {
 /// Lokalna konfiguracja klienta
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientConfig {
-    /// URL serwera aktualizacji
-    pub server_url: String,
-    /// ID aplikacji
+    /// Lista znanych serwerów
+    pub servers: Vec<String>,
+    /// Aktualnie wybrany serwer
+    pub selected_server: String,
+
+    /// Aktywna aplikacja (legacy/compat)
     pub app_id: String,
-    /// Obecna zainstalowana wersja
+    /// Aktualna wersja aktywnej aplikacji (legacy/compat)
     pub current_version: SemanticVersion,
-    /// Ścieżka do katalogu z pobranymi aktualizacjami
+
+    /// Katalogi
     pub download_dir: String,
-    /// Ścieżka do katalogu z zainstalowaną aplikacją
     pub install_dir: String,
-    /// Zapisane klucze publiczne publisherów (key pinning)
-    pub pinned_publisher_keys: Vec<HybridPublicKey>,
-    /// Interwał sprawdzania aktualizacji (sekundy)
+
+    /// Pinned keys per server
+    pub pinned_publisher_keys_by_server: HashMap<String, Vec<HybridPublicKey>>,
+
+    /// Zainstalowane aplikacje (lokalny stan)
+    pub installed_apps: Vec<InstalledApp>,
+
+    /// Ustawienia
     pub check_interval_secs: u64,
-    /// Czy automatycznie pobierać aktualizacje
     pub auto_download: bool,
 }
 
 impl Default for ClientConfig {
     fn default() -> Self {
         Self {
-            server_url: "http://127.0.0.1:8443".to_string(),
+            servers: vec!["http://127.0.0.1:8443".to_string()],
+            selected_server: "http://127.0.0.1:8443".to_string(),
             app_id: "example-app".to_string(),
             current_version: SemanticVersion::new(1, 0, 0),
             download_dir: "./downloads".to_string(),
             install_dir: "./installed".to_string(),
-            pinned_publisher_keys: Vec::new(),
+            pinned_publisher_keys_by_server: HashMap::new(),
+            installed_apps: Vec::new(),
             check_interval_secs: 3600,
             auto_download: false,
         }

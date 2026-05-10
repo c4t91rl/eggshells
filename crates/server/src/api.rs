@@ -1,21 +1,16 @@
-// crates/server/src/api.rs
-//! # REST API Endpoints
-//!
-//! Implementacja endpointów HTTP dla serwera aktualizacji.
-
-use actix_web::{web, HttpResponse}; //, HttpRequest // - nie użyte, wkleić jeśli będzie potrzeba
+use actix_web::{web, HttpResponse};
 use chrono::Utc;
 use secure_update_common::*;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{info, warn, error};
+use tracing::{error, info, warn};
 use uuid::Uuid;
 
 use crate::AppState;
 
 type SharedState = web::Data<Arc<RwLock<AppState>>>;
 
-/// GET /api/health - Health check
+/// GET /api/health
 pub async fn health_check() -> HttpResponse {
     HttpResponse::Ok().json(serde_json::json!({
         "status": "ok",
@@ -30,7 +25,7 @@ pub async fn health_check() -> HttpResponse {
     }))
 }
 
-/// POST /api/publishers - Rejestracja publishera
+/// POST /api/publishers
 pub async fn register_publisher(
     state: SharedState,
     body: web::Json<RegisterPublisherRequest>,
@@ -57,13 +52,13 @@ pub async fn register_publisher(
         Err(e) => {
             error!("❌ Failed to register publisher: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("Registration failed: {}", e),
+                "error": format!("{}", e),
             }))
         }
     }
 }
 
-/// GET /api/publishers - Lista publisherów
+/// GET /api/publishers
 pub async fn list_publishers(state: SharedState) -> HttpResponse {
     let app_state = state.read().await;
     match app_state.db.list_publishers() {
@@ -77,14 +72,27 @@ pub async fn list_publishers(state: SharedState) -> HttpResponse {
     }
 }
 
-/// POST /api/packages/metadata - Publikacja metadanych pakietu
+/// GET /api/apps
+pub async fn list_apps(state: SharedState) -> HttpResponse {
+    let app_state = state.read().await;
+    match app_state.db.list_apps() {
+        Ok(apps) => HttpResponse::Ok().json(ListAppsResponse { apps }),
+        Err(e) => {
+            error!("❌ Failed to list apps: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("{}", e),
+            }))
+        }
+    }
+}
+
+/// POST /api/packages/metadata
 pub async fn publish_metadata(
     state: SharedState,
     body: web::Json<PublishPackageRequest>,
 ) -> HttpResponse {
     let app_state = state.read().await;
 
-    // Weryfikuj, że publisher istnieje
     let publisher = match app_state.db.get_publisher(&body.publisher_id) {
         Ok(Some(p)) => p,
         Ok(None) => {
@@ -125,7 +133,7 @@ pub async fn publish_metadata(
     match app_state.db.save_package_metadata(&metadata) {
         Ok(_) => {
             info!(
-                "📦 Published package: {} v{} by {}",
+                "📦 Published: {} v{} by {}",
                 metadata.app_id, metadata.version, metadata.publisher_id
             );
             HttpResponse::Created().json(serde_json::json!({
@@ -142,7 +150,7 @@ pub async fn publish_metadata(
     }
 }
 
-/// POST /api/packages/upload/{publisher_id}/{app_id}/{version} - Upload pliku pakietu
+/// POST /api/packages/upload/{publisher_id}/{app_id}/{version}
 pub async fn upload_package(
     state: SharedState,
     path: web::Path<(String, String, String)>,
@@ -151,9 +159,8 @@ pub async fn upload_package(
     let (publisher_id, app_id, version) = path.into_inner();
     let app_state = state.read().await;
 
-    // Weryfikuj publishera
     match app_state.db.get_publisher(&publisher_id) {
-        Ok(Some(p)) if p.active => {},
+        Ok(Some(p)) if p.active => {}
         Ok(Some(_)) => {
             return HttpResponse::Forbidden().json(serde_json::json!({
                 "error": "Publisher is deactivated",
@@ -173,7 +180,7 @@ pub async fn upload_package(
 
     match app_state.storage.store_package(&app_id, &version, &body) {
         Ok(path) => {
-            info!("📁 Stored package file: {}", path.display());
+            info!("📁 Stored: {}", path.display());
             HttpResponse::Ok().json(serde_json::json!({
                 "status": "uploaded",
                 "size": body.len(),
@@ -189,7 +196,7 @@ pub async fn upload_package(
     }
 }
 
-/// POST /api/check/{app_id} - Sprawdzenie dostępności aktualizacji
+/// POST /api/check/{app_id}
 pub async fn check_update(
     state: SharedState,
     path: web::Path<String>,
@@ -202,7 +209,6 @@ pub async fn check_update(
         Ok(Some(latest)) => {
             let update_available = latest.version.is_newer_than(&body.current_version);
 
-            // Pobierz klucz publiczny publishera
             let publisher_key = app_state
                 .db
                 .get_publisher(&latest.publisher_id)
@@ -211,7 +217,7 @@ pub async fn check_update(
                 .map(|p| p.public_key);
 
             info!(
-                "🔍 Check update for {}: current={}, latest={}, update={}",
+                "🔍 Check {}: current={}, latest={}, update={}",
                 app_id, body.current_version, latest.version, update_available
             );
 
@@ -221,13 +227,11 @@ pub async fn check_update(
                 publisher_public_key: if update_available { publisher_key } else { None },
             })
         }
-        Ok(None) => {
-            HttpResponse::Ok().json(CheckUpdateResponse {
-                update_available: false,
-                latest_package: None,
-                publisher_public_key: None,
-            })
-        }
+        Ok(None) => HttpResponse::Ok().json(CheckUpdateResponse {
+            update_available: false,
+            latest_package: None,
+            publisher_public_key: None,
+        }),
         Err(e) => {
             error!("❌ Failed to check update: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
@@ -237,7 +241,7 @@ pub async fn check_update(
     }
 }
 
-/// GET /api/download/{app_id}/{version} - Pobranie pliku pakietu
+/// GET /api/download/{app_id}/{version}
 pub async fn download_package(
     state: SharedState,
     path: web::Path<(String, String)>,
@@ -247,7 +251,7 @@ pub async fn download_package(
 
     if !app_state.storage.package_exists(&app_id, &version) {
         return HttpResponse::NotFound().json(serde_json::json!({
-            "error": "Package file not found",
+            "error": "Package not found",
         }));
     }
 
@@ -256,8 +260,10 @@ pub async fn download_package(
             info!("📥 Download: {} v{} ({} bytes)", app_id, version, data.len());
             HttpResponse::Ok()
                 .content_type("application/octet-stream")
-                .append_header(("Content-Disposition",
-                    format!("attachment; filename=\"{}-{}.pkg\"", app_id, version)))
+                .append_header((
+                    "Content-Disposition",
+                    format!("attachment; filename=\"{}-{}.pkg\"", app_id, version),
+                ))
                 .body(data)
         }
         Err(e) => {
