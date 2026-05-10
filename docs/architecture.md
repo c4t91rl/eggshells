@@ -1,209 +1,115 @@
 # Architektura Systemu
 
-## Przegląd
+Projekt jest podzielony na trzy główne moduły:
+- `secure-update-server` — serwer aktualizacji z REST API,
+- `secure-update-client` — klient GUI do pobierania i weryfikowania aktualizacji,
+- `secure-update-publisher` — narzędzie CLI do generowania kluczy, rejestracji publisherów i publikacji pakietów.
 
-```
-System składa się z trzech głównych komponentów:
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                             ARCHITEKTURA SYSTEMU                             │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  ┌────────────────────┐       HTTPS (TLS)        ┌────────────────────────┐  │
-│  │   UPDATE CLIENT    │<────────────────────────>│     UPDATE SERVER      │  │
-│  │    (Rust + egui)   │                          │    (Rust/Actix-web)    │  │
-│  ├────────────────────┤    1. Check version      ├────────────────────────┤  │
-│  │ ┌────────────────┐ │    2. Get metadata       │ ┌────────────────────┐ │  │
-│  │ │   PQ Verify    │ │    3. Download pkg       │ │   PUBLISHERS DATA  │ │  │
-│  │ └────────────────┘ │    4. Verify signature   │ │ (Keys + Packages)  │ │  │
-│  │ ┌────────────────┐ │                          │ ├────────────────────┤ │  │
-│  │ │ Version Check  │ │                          │ │ - Publisher A      │ │  │
-│  │ └────────────────┘ │                          │ │ - Publisher B      │ │  │
-│  │ ┌────────────────┐ │                          │ │ - Publisher C      │ │  │
-│  │ │  Anti-Tamper   │ │                          │ └────────────────────┘ │  │
-│  │ └────────────────┘ │                          │ ┌────────────────────┐ │  │
-│  │                    │                          │ │    METADATA DB     │ │  │
-│  └────────────────────┘                          │ │      (SQLite)      │ │  │
-│            ▲                                     │ └────────────────────┘ │  │
-│            │                                     └────────────────────────┘  │
-│            │                                                 ▲               │
-│            │                                                 │               │
-│  ┌─────────┴──────────┐                                      │               │
-│  │   PUBLISHER TOOL   │          Upload (Auth)               │               │
-│  │       (CLI)        ├──────────────────────────────────────┘               │
-│  ├────────────────────┤                                                      │
-│  │  1. Key Generation │                                                      │
-│  │  2. Sign Package   │                                                      │
-│  │  3. Upload Assets  │                                                      │
-│  └────────────────────┘                                                      │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
+Całość oparta jest na Rust i wyraźnie oddziela czynności publikacji, przechowywania metadanych oraz weryfikacji aktualizacji.
 
 ## Komponenty
 
 ### Update Server
-- Framework: Rust + Actix-web 4
-- Baza danych: SQLite (via rusqlite)
-- Storage: lokalny filesystem
-- Port: 8443 (HTTP w prototypie, HTTPS w produkcji)
+- Rust + Actix-web;
+- REST API exposes endpoints under `/api`;
+- SQLite (`rusqlite`) dla bazy publisherów i pakietów;
+- lokalny filesystem dla przechowywania plików pakietów;
+- prototypowo nasłuchuje na `127.0.0.1:8443`.
 
-**Endpointy REST API:**
+#### Endpointy
+- `GET /api/health` — status serwera,
+- `POST /api/publishers` — rejestracja nowego publishera,
+- `GET /api/publishers` — lista zarejestrowanych publisherów,
+- `POST /api/packages/metadata` — publikacja metadanych nowego pakietu,
+- `POST /api/packages/upload/{publisher_id}/{app_id}/{version}` — upload binarnego pakietu,
+- `POST /api/check/{app_id}` — sprawdzenie dostępności aktualizacji,
+- `GET /api/download/{app_id}/{version}` — pobranie wersji pakietu.
 
-| Metoda | Endpoint | Opis |
-|--------|----------|------|
-| GET | `/api/health` | Health check |
-| POST | `/api/publishers` | Rejestracja publishera |
-| GET | `/api/publishers` | Lista publisherów |
-| POST | `/api/packages/metadata` | Publikacja metadanych |
-| POST | `/api/packages/upload/{pub}/{app}/{ver}` | Upload pliku |
-| POST | `/api/check/{app_id}` | Sprawdzenie aktualizacji |
-| GET | `/api/download/{app_id}/{version}` | Pobranie pakietu |
+#### Rola
+- przyjmowanie metadanych i publikacja pakietów,
+- przechowywanie kluczy publicznych publisherów,
+- pozwalanie klientowi na pobranie informacji o najnowszej wersji,
+- serwowanie binarnych plików z lokalnego katalogu.
 
 ### Update Client
-- Framework: Rust + egui/eframe 0.28
-- Cross-platform: Windows x86_64, Linux x86_64/aarch64
-- Konfiguracja: JSON (lokalny plik)
-- Key pinning: TOFU (Trust On First Use)
+- Rust + eframe/egui;
+- GUI do konfiguracji serwera, sprawdzania i instalacji aktualizacji;
+- lokalny config JSON z listą serwerów, obecnymi wersjami, katalogami pobrań i pinned keys;
+- korzysta z `reqwest` do połączeń HTTP/HTTPS z serwerem.
 
-**Zakładki GUI:**
-- **Dashboard** – status aplikacji, quick actions
-- **Update** – sprawdzanie, pobieranie, weryfikacja, instalacja
-- **Security** – hardening report, pinned keys, threat model
-- **Settings** – konfiguracja serwera, wersja, key management
-- **Logs** – historia operacji
+#### Funkcje
+- sprawdza aktualizacje dla wybranego `app_id`,
+- pobiera metadane i publiczny klucz publishera,
+- pobiera plik aktualizacji,
+- weryfikuje hash SHA3-256 i podpisy Dilithium3 + Ed25519,
+- wykonuje instalację tylko po pozytywnej weryfikacji.
 
 ### Publisher Tool
-- Interfejs: CLI (clap 4)
-- Komendy: `generate-keys`, `register`, `publish`, `sign`, `verify`
-- Klucze prywatne: JSON z uprawnieniami 600 (Linux)
+- CLI z `clap` i flagami takimi jak `register`, `publish`, `generate-keys`;
+- generuje pary kluczy hybrydowych (`HybridKeyPair`),
+- rejestruje publiczny klucz na serwerze,
+- publikuje metadane pakietu oraz przesyła binarny plik.
+
+#### Przepływ publikacji
+1. `generate-keys` tworzy klucze Dilithium3 + Ed25519,
+2. `register` wysyła publiczny klucz do `/api/publishers`,
+3. `publish` wysyła metadane z SHA3-256 i hybrydowym podpisem do `/api/packages/metadata`,
+4. `upload` przesyła binarny pakiet do `/api/packages/upload/{publisher}/{app}/{version}`.
 
 ## Przepływ aktualizacji
 
-```
-     CLIENT                                           SERVER
-        │                                                │
-        │─── POST /api/check/{app_id} ──────────────────►│
-        │    Body: {current_version, platform}           │
-        │                                                │
-        │◄── 200 OK ─────────────────────────────────────│
-        │    Body: {update_available, metadata,          │
-        │           publisher_public_key}                │
-        │                                                │
-        ▼                                                │
-  ┌──────────────────────────┐                           │
-  │ Logika Klienta:          │                           │
-  │ 1. Nowa > obecna?        │                           │
-  │ 2. Sprawdź Key Pinning   │                           │
-  └──────────────────────────┘                           │
-        │                                                │
-        │─── GET /api/download/{app}/{ver} ─────────────►│
-        │                                                │
-        │◄── [binary data] ──────────────────────────────│
-        │                                                │
-        ▼                                                │
-  ┌─────────────────────────────────┐                    │
-  │ Weryfikacja Integralności:      │                    │
-  │ 1. Oblicz SHA3-256 pliku        │                    │
-  │ 2. Porównaj z hash z metadata   │                    │
-  └─────────────────────────────────┘                    │
-        │                                                │
-        ▼                                                │
-  ┌─────────────────────────────────┐                    │
-  │ Weryfikacja Kryptograficzna:    │                    │
-  │ 1. Verify Dilithium3 signature  │                    │
-  │ 2. Verify Ed25519 signature     │                    │
-  └─────────────────────────────────┘                    │
-        │                                                │
-        ▼                                                │
-  ┌─────────────────────────────────┐                    │
-  │ Decyzja końcowa:                │                    │
-  │ Oba OK? → Zastosuj aktualizację │                    │
-  └─────────────────────────────────┘                    │
-        │                                                │
-```
+1. Klient robi `POST /api/check/{app_id}` z aktualną wersją i platformą.
+2. Serwer zwraca informację, czy jest dostępna nowsza wersja oraz metadane pakietu.
+3. Jeżeli jest aktualizacja, klient pobiera plik z `GET /api/download/{app_id}/{version}`.
+4. Klient najpierw porównuje hash SHA3-256 z metadanych.
+5. Klient weryfikuje hybrydowy podpis pakietu w oparciu o publiczny klucz publishera.
+6. Jeśli mamy zgodność, klient instaluje aktualizację.
 
-## Model wieloserwera / wielu publisherów
+## Oddzielne ścieżki metadanych i pliku
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      MULTI-PUBLISHER MODEL                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  PUBLISHER A                           PUBLISHER B              │
-│  ┌──────────┐                          ┌──────────┐             │
-│  │  Keygen  │                          │  Keygen  │             │
-│  │ Dil + Ed │                          │ Dil + Ed │             │
-│  └────┬─────┘                          └────┬─────┘             │
-│       │ 1. Register Public Key              │                   │
-│       └──────────────────┐    ┌─────────────┘                   │
-│                          ▼    ▼                                 │
-│                ┌──────────────────────────┐                     │
-│                │      UPDATE SERVER       │                     │
-│                │                          │                     │
-│                │  [Trust Store / DB]      │                     │
-│                │  ID A: Pub_Key_A         │                     │
-│                │  ID B: Pub_Key_B         │                     │
-│                └─────┬──────────────┬─────┘                     │
-│                      ▲              ▲                           │
-│       2. Upload      │              │      2. Upload            │
-│       Signed Pkg     │              │      Signed Pkg           │
-│    ┌─────────────┐   │              │   ┌─────────────┐         │
-│    │  Sign with  ├───┘              └───┤  Sign with  │         │
-│    │  Priv_Key_A │                      │  Priv_Key_B │         │
-│    └─────────────┘                      └─────────────┘         │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│                          DISTRIBUTION                           │
-└───────────────┬─────────────────────────────────┬───────────────┘
-                │                                 │
-                │ 3. Download Pkg + Signature     │
-                ▼                                 ▼
-        ┌─────────────────────────────────────────────────┐
-        │                 CLIENT DEVICE                   │
-        │                                                 │
-        │  1. Fetch Trusted Pub_Keys from Server/Root     │
-        │  2. Identify Publisher of Pkg                   │
-        │  3. Verify Sig(Pkg) using corresponding Pub_Key │
-        └─────────────────────────────────────────────────┘
-```
+Serwer oddziela:
+- publikację metadanych (`/api/packages/metadata`),
+- upload binarny (`/api/packages/upload/...`).
 
-## Struktura danych SQLite
+Dzięki temu serwer może wymagać, aby najpierw pojawiły się metadane z podpisem, a dopiero potem binarny plik.
 
-```sql
-CREATE TABLE publishers (
-    id TEXT PRIMARY KEY,
-    display_name TEXT NOT NULL,
-    public_key_json TEXT NOT NULL,   -- HybridPublicKey (Dilithium + Ed25519)
-    registered_at TEXT NOT NULL,
-    active INTEGER NOT NULL DEFAULT 1
-);
+## Struktura danych
 
-CREATE TABLE packages (
-    package_id TEXT PRIMARY KEY,
-    app_id TEXT NOT NULL,
-    version_major INTEGER NOT NULL,
-    version_minor INTEGER NOT NULL,
-    version_patch INTEGER NOT NULL,
-    publisher_id TEXT NOT NULL,
-    sha3_256_hash TEXT NOT NULL,
-    file_size INTEGER NOT NULL,
-    filename TEXT NOT NULL,
-    description TEXT NOT NULL,
-    target_platforms_json TEXT NOT NULL,
-    signature_json TEXT NOT NULL,    -- HybridSignature (Dilithium + Ed25519)
-    published_at TEXT NOT NULL,
-    min_upgrade_from_json TEXT,
-    changelog_json TEXT NOT NULL,
-    FOREIGN KEY (publisher_id) REFERENCES publishers(id)
-);
-```
+### `publishers`
+- `id` — identyfikator publishera,
+- `display_name` — nazwa,
+- `public_key_json` — klucz hybrydowy (`HybridPublicKey`),
+- `registered_at` — timestamp,
+- `active` — aktywność konta.
 
-Wybory technologiczne
-Decyzja	Alternatywy	Uzasadnienie
-Rust	Go, C++, Python	Memory safety, zero unsafe w naszym kodzie, cross-platform
-egui	Qt, GTK, Tauri	Pure Rust, brak external deps, cross-platform out-of-the-box
-SQLite	PostgreSQL, flat files	Prostota prototypu, brak serwera DB
-Actix-web	Axum, Warp	Dojrzały, wysoka wydajność, duże community
-Dilithium3	Dilithium2/5, SPHINCS+	Balans: bezpieczeństwo NIST Level 3 vs rozmiar
-Ed25519	RSA, ECDSA P-256	Szybki, małe klucze, dobrze zbadany
-SHA3-256	SHA-256, BLAKE3	Odporny na length-extension, solidna podstawa NIST
+### `packages`
+- `package_id`,
+- `app_id`,
+- `version_major`, `version_minor`, `version_patch`,
+- `publisher_id`,
+- `sha3_256_hash`,
+- `file_size`,
+- `filename`,
+- `description`,
+- `target_platforms_json`,
+- `signature_json`,
+- `published_at`,
+- `min_upgrade_from_json`,
+- `changelog_json`.
+
+## Decyzje technologiczne
+
+- `Rust` dla bezpieczeństwa pamięci i spójności między komponentami,
+- `Actix-web` dla niskiego narzutu HTTP i łatwej integracji z Tokio,
+- `SQLite` dla prostego, lokalnego repozytorium prototypu,
+- `eframe/egui` jako lekki, natywny GUI w Rust,
+- `SHA3-256` dla integralności danych i odporności na ataki typu length-extension,
+- `CRYSTALS-Dilithium3` dla odporności postkwantowej,
+- `Ed25519` jako drugi podpis dla praktycznej i szybkiej weryfikacji.
+
+## Właściwości systemu
+
+- separacja odpowiedzialności: publikacja, weryfikacja, przechowywanie,
+- hybrydowy model podpisu: dwuwarstwowa weryfikacja bezpieczeństwa,
+- prototyp bazujący na HTTP, ale z wyraźnymi punktami produkcyjnej migracji do TLS,
+- możliwość wielu publisherów i wielu aplikacji na jednym serwerze.
