@@ -156,7 +156,7 @@ impl eframe::App for UpdateApp {
                     UpdateState::UpToDate               => "✅ Ready",
                     UpdateState::Checking               => "🔄 Checking...",
                     UpdateState::UpdateAvailable { .. } => "📦 Update available",
-                    UpdateState::Downloading { .. }     => "⬇️ Downloading...",
+                    UpdateState::Downloading { .. }     => "⬇ Downloading...",
                     UpdateState::Verifying              => "🔍 Verifying...",
                     UpdateState::ReadyToInstall         => "✅ Ready to install",
                     UpdateState::Installing             => "⚙ Installing...",
@@ -297,7 +297,7 @@ impl UpdateApp {
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             match &installed {
                                 None => {
-                                    if ui.button("⬇️ Install").clicked() {
+                                    if ui.button("⬇ Install").clicked() {
                                         let id = app.app_id.clone();
                                         self.start_install_or_update(&id, ctx);
                                     }
@@ -689,7 +689,7 @@ impl UpdateApp {
 
         // Options
         ui.group(|ui| {
-            ui.heading("🔧 Options");
+            ui.heading("🔧 Others");
             ui.separator();
             ui.checkbox(&mut self.config.auto_download, "Auto-download updates on check");
         });
