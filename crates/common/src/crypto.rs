@@ -19,7 +19,7 @@ use ed25519_dalek::{
 use pqcrypto_dilithium::dilithium3;
 use pqcrypto_traits::sign::{
     PublicKey as PqPublicKey, SecretKey as PqSecretKey,
-    SignedMessage, DetachedSignature,
+     DetachedSignature,//SignedMessage, // - niepotrzebny import, odkomentuj jesli będzie potrzeba
 };
 use rand::rngs::OsRng;
 use serde::{Deserialize, Serialize};

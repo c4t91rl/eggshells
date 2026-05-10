@@ -3,7 +3,7 @@
 //!
 //! Implementacja endpointów HTTP dla serwera aktualizacji.
 
-use actix_web::{web, HttpResponse, HttpRequest};
+use actix_web::{web, HttpResponse}; //, HttpRequest // - nie użyte, wkleić jeśli będzie potrzeba
 use chrono::Utc;
 use secure_update_common::*;
 use std::sync::Arc;

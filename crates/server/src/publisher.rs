@@ -9,9 +9,9 @@ use secure_update_common::*;
 /// Weryfikuje, czy publisher ma prawo publikować dla danej aplikacji.
 /// W pełnej implementacji byłaby tu lista uprawnień.
 /// W prototypie każdy zarejestrowany publisher może publikować.
-pub fn verify_publisher_authorization(
+pub fn verify_publisher_authorization( // ...idk anymore
     publisher: &PublisherInfo,
-    app_id: &str,
+    _app_id: &str,
 ) -> Result<bool> {
     // W prototypie: każdy aktywny publisher jest autoryzowany
     Ok(publisher.active)
@@ -19,7 +19,7 @@ pub fn verify_publisher_authorization(
 
 /// Weryfikuje integralność metadanych pakietu względem klucza publishera.
 /// Sprawdza, czy podpis na hashu pakietu jest poprawny.
-pub fn verify_package_metadata(
+pub fn verify_package_metadata( // to add in later updates
     metadata: &PackageMetadata,
     publisher: &PublisherInfo,
     package_data: &[u8],

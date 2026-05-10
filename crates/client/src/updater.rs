@@ -68,7 +68,7 @@ pub fn download_package(
 }
 
 /// Pełny cykl aktualizacji: sprawdź → pobierz → weryfikuj
-pub fn perform_full_update_check(
+pub fn perform_full_update_check( //HOW TA FUNKCJA JEST NIE UŻYWANA??????
     server_url: &str,
     app_id: &str,
     current_version: &SemanticVersion,
@@ -157,7 +157,7 @@ pub fn apply_update(
 
 /// Wynik procesu aktualizacji
 #[derive(Debug)]
-pub enum UpdateResult {
+pub enum UpdateResult { //eeeeeeeeeeeeeeee?
     UpToDate,
     UpdateReady {
         metadata: PackageMetadata,
