@@ -92,7 +92,7 @@ impl UpdateApp {
             active_tab: Tab::Apps,
         };
 
-        app.add_log(LogLevel::Info, "🚀 Secure Update Manager started");
+        app.add_log(LogLevel::Info, "Secure Update Manager started");
         app
     }
 
@@ -112,7 +112,7 @@ impl eframe::App for UpdateApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Modal: confirm uninstall
         if let Some(ref app_id) = self.confirm_uninstall.clone() {
-            egui::Window::new("⚠️ Confirm Uninstall")
+            egui::Window::new("⚠ Confirm Uninstall")
                 .collapsible(false)
                 .resizable(false)
                 .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -139,12 +139,12 @@ impl eframe::App for UpdateApp {
         // Top nav
         egui::TopBottomPanel::top("top").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.heading("🔒 Secure Update Manager");
+                ui.heading("Secure Update Manager");
                 ui.separator();
                 ui.selectable_value(&mut self.active_tab, Tab::Apps,      "🌐 Apps");
                 ui.selectable_value(&mut self.active_tab, Tab::Dashboard, "📊 Dashboard");
-                ui.selectable_value(&mut self.active_tab, Tab::Security,  "🛡️ Security");
-                ui.selectable_value(&mut self.active_tab, Tab::Settings,  "⚙️ Settings");
+                ui.selectable_value(&mut self.active_tab, Tab::Security,  "🛡 Security");
+                ui.selectable_value(&mut self.active_tab, Tab::Settings,  "⚙ Settings");
                 ui.selectable_value(&mut self.active_tab, Tab::Logs,      "📋 Logs");
             });
         });
@@ -159,7 +159,7 @@ impl eframe::App for UpdateApp {
                     UpdateState::Downloading { .. }     => "⬇️ Downloading...",
                     UpdateState::Verifying              => "🔍 Verifying...",
                     UpdateState::ReadyToInstall         => "✅ Ready to install",
-                    UpdateState::Installing             => "⚙️ Installing...",
+                    UpdateState::Installing             => "⚙ Installing...",
                     UpdateState::Completed              => "🎉 Done",
                     UpdateState::Error { .. }           => "❌ Error",
                 };
@@ -167,9 +167,9 @@ impl eframe::App for UpdateApp {
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let dot = match &self.health_info {
-                        Some(h) if h.is_healthy => "🟢",
-                        Some(_)                 => "🔴",
-                        None                    => "⚪",
+                        Some(h) if h.is_healthy => "✅",
+                        Some(_)                 => "❌",
+                        None                    => "❌",
                     };
                     ui.label(format!("{} {}", dot, self.selected_server));
                 });
@@ -361,13 +361,13 @@ impl UpdateApp {
 
         // Quick actions
         ui.horizontal(|ui| {
-            if ui.button("🏥 Health Check").clicked() {
+            if ui.button("➕ Health Check").clicked() {
                 self.perform_health_check();
             }
             if ui.button("🔄 Refresh Apps").clicked() {
                 self.refresh_apps_list();
             }
-            if ui.button("🛡️ Security Check").clicked() {
+            if ui.button("🛡 Security Check").clicked() {
                 self.perform_hardening_check();
             }
         });
@@ -376,7 +376,7 @@ impl UpdateApp {
 
         // Health info
         ui.group(|ui| {
-            ui.heading("🏥 Server Health");
+            ui.heading("➕ Server Health");
             ui.separator();
 
             match &self.health_info {
@@ -384,13 +384,13 @@ impl UpdateApp {
                     ui.label("No health check performed yet. Click Health Check above.");
                 }
                 Some(h) if !h.is_healthy => {
-                    ui.colored_label(egui::Color32::RED, "🔴 Server unreachable");
+                    ui.colored_label(egui::Color32::RED, "❌ Server unreachable");
                     if let Some(ref err) = h.error {
                         ui.label(format!("Error: {}", err));
                     }
                 }
                 Some(h) => {
-                    ui.colored_label(egui::Color32::GREEN, "🟢 Server is healthy");
+                    ui.colored_label(egui::Color32::GREEN, "✅ Server is healthy");
                     ui.add_space(4.0);
 
                     egui::Grid::new("health_grid")
@@ -471,7 +471,7 @@ impl UpdateApp {
 
         // Crypto
         ui.group(|ui| {
-            ui.heading("🔐 Cryptography");
+            ui.heading("🔒 Cryptography");
             ui.separator();
             ui.horizontal(|ui| {
                 ui.label("Post-quantum:");
@@ -484,10 +484,10 @@ impl UpdateApp {
     }
 
     // ──────────────────────────────────────────────────────────
-    //  🛡️ SECURITY
+    //  🛡 SECURITY
     // ──────────────────────────────────────────────────────────
     fn tab_security(&mut self, ui: &mut egui::Ui) {
-        ui.heading("🛡️ Security");
+        ui.heading("🛡 Security");
         ui.add_space(4.0);
 
         if ui.button("🔍 Run Security Check").clicked() {
@@ -541,7 +541,7 @@ impl UpdateApp {
                     if report.overall_safe {
                         ui.colored_label(egui::Color32::GREEN, "✅ Environment is safe");
                     } else {
-                        ui.colored_label(egui::Color32::RED, "⚠️ Potential issues detected");
+                        ui.colored_label(egui::Color32::RED, "⚠ Potential issues detected");
                     }
                 }
             }
@@ -598,7 +598,7 @@ impl UpdateApp {
                 ("✅", "Key compromise",      "Hybrid scheme (PQ + classical)"),
                 ("✅", "Replay attacks",      "Timestamped signatures"),
                 ("✅", "Client tampering",    "Self-integrity + debugger detection"),
-                ("⚠️", "Transport security", "HTTP in prototype (TLS 1.3 in production)"),
+                ("⚠", "Transport security", "HTTP in prototype (TLS 1.3 in production)"),
             ];
             egui::Grid::new("prot_grid")
                 .num_columns(3)
@@ -615,10 +615,10 @@ impl UpdateApp {
     }
 
     // ──────────────────────────────────────────────────────────
-    //  ⚙️ SETTINGS
+    //  ⚙ SETTINGS
     // ──────────────────────────────────────────────────────────
     fn tab_settings(&mut self, ui: &mut egui::Ui) {
-        ui.heading("⚙️ Settings");
+        ui.heading("⚙ Settings");
         ui.add_space(4.0);
 
         // Directories
@@ -647,9 +647,9 @@ impl UpdateApp {
             for s in self.config.servers.iter() {
                 ui.horizontal(|ui| {
                     if *s == self.selected_server {
-                        ui.strong(format!("▸ {}", s));
+                        ui.strong(format!("{}", s));
                     } else {
-                        ui.label(format!("  {}", s));
+                        ui.label(format!("{}", s));
                     }
                 });
             }
@@ -780,7 +780,7 @@ impl UpdateApp {
 
     fn perform_health_check(&mut self) {
         let url = format!("{}/api/health", self.selected_server);
-        self.add_log(LogLevel::Info, &format!("Health check → {}", url));
+        self.add_log(LogLevel::Info, &format!("Health check {}", url));
 
         let start = std::time::Instant::now();
 
