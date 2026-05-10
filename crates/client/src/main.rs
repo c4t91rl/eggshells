@@ -22,7 +22,7 @@ fn main() -> Result<()> {
 
     // Anti-tamper check przy starcie
     if let Err(e) = anti_tamper::perform_self_integrity_check() {
-        eprintln!("⚠️ Self-integrity check warning: {}", e);
+        eprintln!("  Self-integrity check warning: {}", e);
         // W produkcji: odmów uruchomienia
     }
 
@@ -30,7 +30,7 @@ fn main() -> Result<()> {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([900.0, 650.0])
             .with_min_inner_size([700.0, 500.0])
-            .with_title("🔒 Secure Update Manager"),
+            .with_title("  Secure Update Manager"),
         ..Default::default()
     };
 

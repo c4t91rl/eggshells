@@ -43,14 +43,14 @@ pub async fn register_publisher(
 
     match app_state.db.register_publisher(&publisher) {
         Ok(_) => {
-            info!("✅ Registered publisher: {} ({})", publisher.display_name, publisher_id);
+            info!("  Registered publisher: {} ({})", publisher.display_name, publisher_id);
             HttpResponse::Created().json(serde_json::json!({
                 "status": "registered",
                 "publisher_id": publisher_id,
             }))
         }
         Err(e) => {
-            error!("❌ Failed to register publisher: {}", e);
+            error!("  Failed to register publisher: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("{}", e),
             }))
@@ -64,7 +64,7 @@ pub async fn list_publishers(state: SharedState) -> HttpResponse {
     match app_state.db.list_publishers() {
         Ok(publishers) => HttpResponse::Ok().json(publishers),
         Err(e) => {
-            error!("❌ Failed to list publishers: {}", e);
+            error!("  Failed to list publishers: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("{}", e),
             }))
@@ -78,7 +78,7 @@ pub async fn list_apps(state: SharedState) -> HttpResponse {
     match app_state.db.list_apps() {
         Ok(apps) => HttpResponse::Ok().json(ListAppsResponse { apps }),
         Err(e) => {
-            error!("❌ Failed to list apps: {}", e);
+            error!("  Failed to list apps: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("{}", e),
             }))
@@ -96,7 +96,7 @@ pub async fn publish_metadata(
     let publisher = match app_state.db.get_publisher(&body.publisher_id) {
         Ok(Some(p)) => p,
         Ok(None) => {
-            warn!("⚠️ Unknown publisher: {}", body.publisher_id);
+            warn!("  Unknown publisher: {}", body.publisher_id);
             return HttpResponse::NotFound().json(serde_json::json!({
                 "error": "Publisher not found",
             }));
@@ -133,7 +133,7 @@ pub async fn publish_metadata(
     match app_state.db.save_package_metadata(&metadata) {
         Ok(_) => {
             info!(
-                "📦 Published: {} v{} by {}",
+                "  Published: {} v{} by {}",
                 metadata.app_id, metadata.version, metadata.publisher_id
             );
             HttpResponse::Created().json(serde_json::json!({
@@ -142,7 +142,7 @@ pub async fn publish_metadata(
             }))
         }
         Err(e) => {
-            error!("❌ Failed to publish metadata: {}", e);
+            error!("  Failed to publish metadata: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("{}", e),
             }))
@@ -180,7 +180,7 @@ pub async fn upload_package(
 
     match app_state.storage.store_package(&app_id, &version, &body) {
         Ok(path) => {
-            info!("📁 Stored: {}", path.display());
+            info!("  Stored: {}", path.display());
             HttpResponse::Ok().json(serde_json::json!({
                 "status": "uploaded",
                 "size": body.len(),
@@ -188,7 +188,7 @@ pub async fn upload_package(
             }))
         }
         Err(e) => {
-            error!("❌ Failed to store package: {}", e);
+            error!("  Failed to store package: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("{}", e),
             }))
@@ -217,7 +217,7 @@ pub async fn check_update(
                 .map(|p| p.public_key);
 
             info!(
-                "🔍 Check {}: current={}, latest={}, update={}",
+                "  Check {}: current={}, latest={}, update={}",
                 app_id, body.current_version, latest.version, update_available
             );
 
@@ -233,7 +233,7 @@ pub async fn check_update(
             publisher_public_key: None,
         }),
         Err(e) => {
-            error!("❌ Failed to check update: {}", e);
+            error!("  Failed to check update: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("{}", e),
             }))
@@ -257,7 +257,7 @@ pub async fn download_package(
 
     match app_state.storage.read_package(&app_id, &version) {
         Ok(data) => {
-            info!("📥 Download: {} v{} ({} bytes)", app_id, version, data.len());
+            info!("  Download: {} v{} ({} bytes)", app_id, version, data.len());
             HttpResponse::Ok()
                 .content_type("application/octet-stream")
                 .append_header((
@@ -267,7 +267,7 @@ pub async fn download_package(
                 .body(data)
         }
         Err(e) => {
-            error!("❌ Failed to read package: {}", e);
+            error!("  Failed to read package: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("{}", e),
             }))

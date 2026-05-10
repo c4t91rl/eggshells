@@ -123,9 +123,9 @@ impl VerificationReport {
         lines.push(format!(
             "  OVERALL:        {}",
             if self.overall_valid {
-                "✅ PASSED"
+                "  PASSED"
             } else {
-                "❌ FAILED"
+                "  FAILED"
             }
         ));
 
@@ -133,7 +133,7 @@ impl VerificationReport {
             lines.push(format!(""));
             lines.push(format!("  Errors:"));
             for err in &self.errors {
-                lines.push(format!("    ⚠ {}", err));
+                lines.push(format!("      {}", err));
             }
         }
 
@@ -143,8 +143,8 @@ impl VerificationReport {
 
 fn status_icon(ok: bool) -> &'static str { // <= it literally causes errors if i remove it, how is this supposed to be unused????
     if ok {
-        "✓ PASS"
+        "  PASS"
     } else {
-        "✗ FAIL"
+        "  FAIL"
     }
 } //idk czy to kiedykolwiek użyjemy

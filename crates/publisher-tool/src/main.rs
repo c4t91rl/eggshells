@@ -148,7 +148,7 @@ async fn main() -> Result<()> {
 }
 
 fn generate_keys(publisher_id: &str, output: &PathBuf) -> Result<()> {
-    println!("🔑 Generating hybrid key pair for publisher '{}'...", publisher_id);
+    println!("  Generating hybrid key pair for publisher '{}'...", publisher_id);
     println!("   Algorithms: CRYSTALS-Dilithium3 + Ed25519");
 
     let keypair = HybridKeyPair::generate(publisher_id)?;
@@ -165,11 +165,11 @@ fn generate_keys(publisher_id: &str, output: &PathBuf) -> Result<()> {
     let public_data = serde_json::to_vec_pretty(&public_key)?;
     std::fs::write(&public_path, &public_data)?;
 
-    println!("✅ Keys generated successfully!");
+    println!("  Keys generated successfully!");
     println!("   Private keys: {}", secret_path.display());
     println!("   Public key:   {}", public_path.display());
     println!();
-    println!("⚠️  PROTECT YOUR PRIVATE KEYS! Never share {}",
+    println!("   PROTECT YOUR PRIVATE KEYS! Never share {}",
         secret_path.display());
 
     // Ustawienie uprawnień (Linux/macOS)
@@ -178,14 +178,14 @@ fn generate_keys(publisher_id: &str, output: &PathBuf) -> Result<()> {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&secret_path,
             std::fs::Permissions::from_mode(0o600))?;
-        println!("🔒 Set permissions 600 on private key file");
+        println!("  Set permissions 600 on private key file");
     }
 
     Ok(())
 }
 
 async fn register_publisher(keys: &PathBuf, server: &str, name: &str) -> Result<()> {
-    println!("📝 Registering publisher on {}...", server);
+    println!("  Registering publisher on {}...", server);
 
     let key_data = std::fs::read(keys).context("Failed to read key file")?;
     let keypair = HybridKeyPair::import_secret_keys(&key_data)?;
@@ -206,12 +206,12 @@ async fn register_publisher(keys: &PathBuf, server: &str, name: &str) -> Result<
 
     if response.status().is_success() {
         let body: serde_json::Value = response.json().await?;
-        println!("✅ Publisher registered successfully!");
+        println!("  Publisher registered successfully!");
         println!("   Publisher ID: {}", body["publisher_id"]);
     } else {
         let status = response.status();
         let body = response.text().await?;
-        println!("❌ Registration failed: {} - {}", status, body);
+        println!("  Registration failed: {} - {}", status, body);
     }
 
     Ok(())
@@ -226,7 +226,7 @@ async fn publish_package(
     description: &str,
     changelog: &[String],
 ) -> Result<()> {
-    println!("📦 Publishing package {} v{}...", app_id, version);
+    println!("  Publishing package {} v{}...", app_id, version);
 
     // Wczytaj klucze
     let key_data = std::fs::read(keys).context("Failed to read key file")?;
@@ -245,7 +245,7 @@ async fn publish_package(
     // Podpisz pakiet
     println!("   Signing with Dilithium3 + Ed25519...");
     let signature = keypair.sign(&package_data)?;
-    println!("   ✓ Signature created");
+    println!("     Signature created");
 
     // Parsuj wersję
     let sem_version = SemanticVersion::parse(version)
@@ -274,7 +274,7 @@ async fn publish_package(
         let body = upload_resp.text().await?;
         anyhow::bail!("Upload failed: {}", body);
     }
-    println!("   ✓ File uploaded");
+    println!("     File uploaded");
 
     // 2. Publikuj metadane
     println!("   Publishing metadata...");
@@ -301,18 +301,18 @@ async fn publish_package(
 
     if meta_resp.status().is_success() {
         let body: serde_json::Value = meta_resp.json().await?;
-        println!("✅ Package published successfully!");
+        println!("  Package published successfully!");
         println!("   Package ID: {}", body["package_id"]);
     } else {
         let body = meta_resp.text().await?;
-        println!("❌ Metadata publication failed: {}", body);
+        println!("  Metadata publication failed: {}", body);
     }
 
     Ok(())
 }
 
 fn sign_file(keys: &PathBuf, file: &PathBuf, output: &PathBuf) -> Result<()> {
-    println!("✍️ Signing file: {}", file.display());
+    println!("  Signing file: {}", file.display());
 
     let key_data = std::fs::read(keys)?;
     let keypair = HybridKeyPair::import_secret_keys(&key_data)?;
@@ -329,13 +329,13 @@ fn sign_file(keys: &PathBuf, file: &PathBuf, output: &PathBuf) -> Result<()> {
     });
 
     std::fs::write(output, serde_json::to_vec_pretty(&sig_data)?)?;
-    println!("✅ Signature saved to: {}", output.display());
+    println!("  Signature saved to: {}", output.display());
 
     Ok(())
 }
 
 fn verify_file(public_key_path: &PathBuf, file: &PathBuf, signature_path: &PathBuf) -> Result<()> {
-    println!("🔍 Verifying file: {}", file.display());
+    println!("  Verifying file: {}", file.display());
 
     let pk_data = std::fs::read(public_key_path)?;
     let public_key: HybridPublicKey = serde_json::from_slice(&pk_data)?;
@@ -350,9 +350,9 @@ fn verify_file(public_key_path: &PathBuf, file: &PathBuf, signature_path: &PathB
 
     println!("   {}", result.details);
     if result.overall_valid {
-        println!("✅ Verification PASSED");
+        println!("  Verification PASSED");
     } else {
-        println!("❌ Verification FAILED");
+        println!("  Verification FAILED");
     }
 
     Ok(())
