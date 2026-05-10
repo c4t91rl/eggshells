@@ -1,14 +1,39 @@
 {
-  "server_url": "http://127.0.0.1:8443",
+  "servers": [
+    "http://127.0.0.1:8443"
+  ],
+  "selected_server": "http://127.0.0.1:8443",
   "app_id": "example-app",
   "current_version": {
     "major": 1,
-    "minor": 0,
+    "minor": 1,
     "patch": 0
   },
   "download_dir": "./downloads",
   "install_dir": "./installed",
-  "pinned_publisher_keys": [],
+  "pinned_publisher_keys_by_server": {
+    "http://127.0.0.1:8443": [
+      {
+        "publisher_id": "demo-publisher",
+        "dilithium_public_key": "vbTcTPD7qhFaENJUGMPGUkm3buJd8dYXiYB0YAb8KLuj0RtusV4A3OzglSnLUkThL1YAWxM6wWyFODPEza02eJc5KCJplbc5WEs2OH0pJkyD6cvdl1ifFriFV4sKd+I5L/3VtT/s366miCt41I44q4nBaEQybPI4eL3tzrO6hQiC5ExlgZ+zazgrbyvIk16hRe1uPGn+S4SnZFMlYHPpwPB89wtboyZ0JI2lVPGZ4Obn4SNPefw8VeBWDL2C8Fsu21eIUfgq+brXI+7ghG7aZ+GiNDe3+kUYJMQveKJeoKZwKFnKEU7/uxU16EkBgWHAhEL1DvwEb/R8EUX1kS/qQaqaeCuDGa9d6vwVx7W81ktjI7ToVYfsV5qiCWpKUpGnF9p+J8pI12kV2pShlhoOoEcGXsKfUwkx18AueLdK2AXvc1uOg/wVjV+tfpIV+yuhHkn5cfI7jBKdpFaIhlUs3SKhUz8Bk5SnT6EkQFkb3+u8+YBfpoY2wkg1C1CN+gWTYnX+W+aOlZMcZ5Y71ooyXw7m+jsfOw1D9hRl5tGYsuHitxiV+sbkUwC3YUSZWA6i2OSXvWd1zpNFrFZfekm3N0Ryv3w/1fXw7fdgmaWP2grNmFOGdzxZyLSB971FTx3DcKR8dK1vslYglBsT8RXJxaIOcWDLM8/ioHxFY/Ja3oOHMlkFXJZVry6E/0ZcY3DSfWjWVk+tNtpkVSejWa06JHrWZhlIeX89Ntdvj9ajL4mpjxr4Uwg9oNQLH9kH/7iTPZcUCn7DkmKgNKr/W/t0yaEAKIP0pj+bNu942ef0mVPp91RUpjkkw99nAZ1LL1+oHuLLtXX/bBClK9v0A/fhS/u39ppW/rBgLtQZ1bdbJQ0YJMQLpGjnXavDOr20fBkHqsOTct/2JeVgXBhsa/FocDrEaGo/eAS42yKlLmRILwkU7mqLwvQcm13w0LfJzbxyOHsOI6skvkIlUtKmqulrak6fH9DQNBKpH24IF3ptMHy5Se4A0M4yACAvuQhWoX85mlEdxf1ym4th+jdkzCAMDoK8aXotXhye1MVxEn3/2gibKN+iMKJAAynEcuWBMdRv0JLdI0kdDfd1qABqbexOhctGTgWfWqLArtmVBbHKOnXGYRg0icUaKse7qteQr/OzTXneiDFaX+ErkFQuBZWtzAYfLKfQNAxqRK0Es7Eo7Y7jQfGFFVTx7qW/eTWs7dcKtdYCCDpfQGhhkT70hmN86w9xdZzmgg3gKJpELDwk41mIkV5Pm0VxZuVc3QjTYA5NjZMeZCNLcBYLFDSy05YexzEbWlU9ZG03Oi8c2tN0X/HU5CbGNWkdNp8LIIQdH+QQPY7sj3F/vZP7iw8miZp4Gg8l+rfo8j2UI62t5OaooQ5bZvGCcZhDHP9sQR0LEa8joiJm6OxSthNeYwNDmiB2XXk+tGGLOMNMukVYBlfajepbNPhmUAiY/sy9+go+sovNG0Aqb1wgXRG9Im02WnlCXeaX5iT6BWiNjWSlPRDh4U8VXT83b8Oqg/huwJ4yT+qIatFYUPVlxByTUpMQ2kdFOXJUbZBSlQDVPndpq0Nzys/h23ya33LAY1wPARghr6O0clLTKD/0uM7RTx0HlbpLHsAtD4zpL/Zhjw3OkcmNhFyOLeD6KzNYWAZM9QMzCBYhj89d4MbA0zfNcsbxZRds7V2qiCAJhFvVSjVJd4Mhils3h/hQ/tg653JFBGIifw+w5TkQTQ0DbDDBkt54TzRar+5CR4pv5ima83GLzMfPqZnV/cLe7Ni3lf2bRWJv0dB6mrU7DwrvZAW/XY3WdlB4XbtRy851GMgKrMxrD5/1h0mMz44v7Ex1/v5M8N7gqo9ToJeZ38cGGsFJYZrwUQDBxwLfZtQtPVvN/KlsiLdg5wwtIJY2/+RKYjLSGFG2M8eMFNU9EZwSPkpN31uTiydewgfJbDcYBJY9kSdCZmkOi4dMWGBT8sChrLekCthfXje4mjG2f50rVQuz1dKv/LgLqoElFLLzgVe8UDJyWDLZDbJ8cvC4RI4jkllbM1RV11guoRqbE3nlZpjc1K5qeEoGKFFX4RtKCWcfAQUryaUiSjuzOdY5K08YimY1kuf2bdm0EUjtk5og9/QKVhW6oBHCF4z4YTzUUPPlNV0zEdlIelAUN94rI+mZ0JcjSuBj85sz7eEpAQkPKO0PXZbWPQCdEIMR0YjTlBX1Jr4IBVfFkIlQEEVldf6lHjo19nmQe4AR4XQb3by3hJ+otraLwV6/l2ERf+ZATXNgnigIeuaBmVklmWP8NrusvlnmwGGgX1mC+XnLLAzgS+swzUoBypMlW2Axz0kP6VB0NpDUmRBh0Ry203diBfrx9af+23utq9xWKuoKjPapWV0h2g0PAuGdkbN3oOXDZjPy4qGllH2iIvia0N4P7vOTNktInAEwH0vPfSt/bDz5np6y1Y5cjMBpjsONPFpAmD+B1aVLi/6V+zLeNlh1oRyixGS50C6omXfzIruVWApWpGk5GETDfQSuwKhoxW9x/yK7JbNWCCQjqSp5bDhJvKw3JEsry3E81oNPpigUjAP7bY3neHsMhNWDj9deHW/o+N5iHYDg2j71XDQ=",
+        "ed25519_public_key": "RUgH5ZB2D9FXQIdaTZpf5xhxREJSu5/YIu37992QXUo="
+      }
+    ]
+  },
+  "installed_apps": [
+    {
+      "server_url": "http://127.0.0.1:8443",
+      "app_id": "example-app",
+      "installed_version": {
+        "major": 1,
+        "minor": 1,
+        "patch": 0
+      },
+      "install_dir": "./installed/example-app",
+      "installed_at": "2026-05-10T02:21:27.874120761Z",
+      "last_verified_at": "2026-05-10T02:21:27.874120880Z"
+    }
+  ],
   "check_interval_secs": 3600,
   "auto_download": false
 }

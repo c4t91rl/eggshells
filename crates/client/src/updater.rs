@@ -8,7 +8,7 @@ pub fn fetch_apps(server_url: &str) -> Result<ListAppsResponse> {
         .build()?;
 
     let resp = client
-        .get(format!("{}/api/apps", server_url))
+        .get(format!("{}/api/apps", server_url.trim_end_matches('/')))
         .send()
         .context("Failed to fetch apps")?;
 
@@ -39,7 +39,7 @@ pub fn check_for_update(
     };
 
     let response = client
-        .post(format!("{}/api/check/{}", server_url, app_id))
+        .post(format!("{}/api/check/{}", server_url.trim_end_matches('/'), app_id))
         .json(&request)
         .send()
         .context("Failed to connect to update server")?;
@@ -65,7 +65,7 @@ pub fn download_package(
         .build()?;
 
     let response = client
-        .get(format!("{}/api/download/{}/{}", server_url, app_id, version))
+        .get(format!("{}/api/download/{}/{}", server_url.trim_end_matches('/'), app_id, version))
         .send()
         .context("Failed to download package")?;
 
