@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse};
 use chrono::Utc;
 use secure_update_common::*;
 use std::sync::Arc;
@@ -9,6 +9,130 @@ use uuid::Uuid;
 use crate::AppState;
 
 type SharedState = web::Data<Arc<RwLock<AppState>>>;
+
+// ═══════════════════════════════════════════════════════════════
+//  AUTH HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+fn extract_token(req: &HttpRequest) -> Option<String> {
+    req.headers()
+        .get("Authorization")?
+        .to_str()
+        .ok()?
+        .strip_prefix("Bearer ")
+        .map(|s| s.to_string())
+}
+
+async fn verify_auth(
+    state: &SharedState,
+    req: &HttpRequest,
+) -> Result<(String, String), HttpResponse> {
+    let token = extract_token(req).ok_or_else(|| {
+        HttpResponse::Unauthorized().json(serde_json::json!({
+            "error": "Missing Authorization header. Use: Bearer <token>"
+        }))
+    })?;
+
+    let app_state = state.read().await;
+    match app_state.db.verify_session(&token) {
+        Ok(Some((username, publisher_id))) => Ok((username, publisher_id)),
+        Ok(None) => Err(HttpResponse::Unauthorized().json(serde_json::json!({
+            "error": "Invalid or expired session"
+        }))),
+        Err(e) => Err(HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": format!("{}", e)
+        }))),
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AUTH ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+/// POST /api/auth/register
+pub async fn register_account(
+    state: SharedState,
+    body: web::Json<crate::auth::RegisterAccountRequest>,
+) -> HttpResponse {
+    let app_state = state.read().await;
+
+    match app_state.db.create_publisher_account(
+        &body.username,
+        &body.publisher_id,
+        &body.display_name,
+        &body.password,
+    ) {
+        Ok(_) => {
+            info!("✅ Account created: {} ({})", body.username, body.publisher_id);
+            HttpResponse::Created().json(serde_json::json!({
+                "status": "account_created",
+                "username": body.username,
+                "publisher_id": body.publisher_id,
+            }))
+        }
+        Err(e) => {
+            error!("❌ Account creation failed: {}", e);
+            HttpResponse::BadRequest().json(serde_json::json!({
+                "error": format!("{}", e)
+            }))
+        }
+    }
+}
+
+/// POST /api/auth/login
+pub async fn login(
+    state: SharedState,
+    body: web::Json<crate::auth::LoginRequest>,
+) -> HttpResponse {
+    let app_state = state.read().await;
+
+    match app_state.db.verify_login(&body.username, &body.password) {
+        Ok(Some((username, publisher_id))) => {
+            let token = crate::auth::generate_session_token();
+            let expires_at = chrono::Utc::now() + chrono::Duration::hours(24);
+
+            if let Err(e) = app_state.db.create_session(
+                &token, &username, &publisher_id, &expires_at,
+            ) {
+                return HttpResponse::InternalServerError().json(serde_json::json!({
+                    "error": format!("Session failed: {}", e)
+                }));
+            }
+
+            info!("✅ Login: {} ({})", username, publisher_id);
+            HttpResponse::Ok().json(crate::auth::LoginResponse {
+                token,
+                publisher_id,
+                expires_at: expires_at.to_rfc3339(),
+            })
+        }
+        Ok(None) => {
+            warn!("❌ Login failed: {}", body.username);
+            HttpResponse::Unauthorized().json(serde_json::json!({
+                "error": "Invalid username or password"
+            }))
+        }
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": format!("{}", e)
+        })),
+    }
+}
+
+/// POST /api/auth/logout
+pub async fn logout(
+    state: SharedState,
+    req: HttpRequest,
+) -> HttpResponse {
+    if let Some(token) = extract_token(&req) {
+        let app_state = state.read().await;
+        app_state.db.delete_session(&token).ok();
+    }
+    HttpResponse::Ok().json(serde_json::json!({"status": "logged_out"}))
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PUBLIC ENDPOINTS (no auth)
+// ═══════════════════════════════════════════════════════════════
 
 /// GET /api/health
 pub async fn health_check() -> HttpResponse {
@@ -25,36 +149,14 @@ pub async fn health_check() -> HttpResponse {
     }))
 }
 
-/// POST /api/publishers
-pub async fn register_publisher(
-    state: SharedState,
-    body: web::Json<RegisterPublisherRequest>,
-) -> HttpResponse {
+/// GET /api/apps
+pub async fn list_apps(state: SharedState) -> HttpResponse {
     let app_state = state.read().await;
-    let publisher_id = body.public_key.publisher_id.clone();
-
-    let publisher = PublisherInfo {
-        id: publisher_id.clone(),
-        display_name: body.display_name.clone(),
-        public_key: body.public_key.clone(),
-        registered_at: Utc::now(),
-        active: true,
-    };
-
-    match app_state.db.register_publisher(&publisher) {
-        Ok(_) => {
-            info!( "Registered publisher: {} ({})", publisher.display_name, publisher_id);
-            HttpResponse::Created().json(serde_json::json!({
-                "status": "registered",
-                "publisher_id": publisher_id,
-            }))
-        }
-        Err(e) => {
-            error!( "Failed to register publisher: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("{}", e),
-            }))
-        }
+    match app_state.db.list_apps() {
+        Ok(apps) => HttpResponse::Ok().json(ListAppsResponse { apps }),
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": format!("{}", e)
+        })),
     }
 }
 
@@ -62,137 +164,10 @@ pub async fn register_publisher(
 pub async fn list_publishers(state: SharedState) -> HttpResponse {
     let app_state = state.read().await;
     match app_state.db.list_publishers() {
-        Ok(publishers) => HttpResponse::Ok().json(publishers),
-        Err(e) => {
-            error!( "Failed to list publishers: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("{}", e),
-            }))
-        }
-    }
-}
-
-/// GET /api/apps
-pub async fn list_apps(state: SharedState) -> HttpResponse {
-    let app_state = state.read().await;
-    match app_state.db.list_apps() {
-        Ok(apps) => HttpResponse::Ok().json(ListAppsResponse { apps }),
-        Err(e) => {
-            error!( "Failed to list apps: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("{}", e),
-            }))
-        }
-    }
-}
-
-/// POST /api/packages/metadata
-pub async fn publish_metadata(
-    state: SharedState,
-    body: web::Json<PublishPackageRequest>,
-) -> HttpResponse {
-    let app_state = state.read().await;
-
-    let publisher = match app_state.db.get_publisher(&body.publisher_id) {
-        Ok(Some(p)) => p,
-        Ok(None) => {
-            warn!( "Unknown publisher: {}", body.publisher_id);
-            return HttpResponse::NotFound().json(serde_json::json!({
-                "error": "Publisher not found",
-            }));
-        }
-        Err(e) => {
-            return HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("{}", e),
-            }));
-        }
-    };
-
-    if !publisher.active {
-        return HttpResponse::Forbidden().json(serde_json::json!({
-            "error": "Publisher is deactivated",
-        }));
-    }
-
-    let metadata = PackageMetadata {
-        package_id: Uuid::new_v4().to_string(),
-        app_id: body.app_id.clone(),
-        version: body.version.clone(),
-        publisher_id: body.publisher_id.clone(),
-        sha3_256_hash: body.sha3_256_hash.clone(),
-        file_size: body.file_size,
-        filename: body.filename.clone(),
-        description: body.description.clone(),
-        target_platforms: body.target_platforms.clone(),
-        signature: body.signature.clone(),
-        published_at: Utc::now(),
-        min_upgrade_from: body.min_upgrade_from.clone(),
-        changelog: body.changelog.clone(),
-    };
-
-    match app_state.db.save_package_metadata(&metadata) {
-        Ok(_) => {
-            info!(
-                 "Published: {} v{} by {}",
-                metadata.app_id, metadata.version, metadata.publisher_id
-            );
-            HttpResponse::Created().json(serde_json::json!({
-                "status": "published",
-                "package_id": metadata.package_id,
-            }))
-        }
-        Err(e) => {
-            error!( "Failed to publish metadata: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("{}", e),
-            }))
-        }
-    }
-}
-
-/// POST /api/packages/upload/{publisher_id}/{app_id}/{version}
-pub async fn upload_package(
-    state: SharedState,
-    path: web::Path<(String, String, String)>,
-    body: web::Bytes,
-) -> HttpResponse {
-    let (publisher_id, app_id, version) = path.into_inner();
-    let app_state = state.read().await;
-
-    match app_state.db.get_publisher(&publisher_id) {
-        Ok(Some(p)) if p.active => {}
-        Ok(Some(_)) => {
-            return HttpResponse::Forbidden().json(serde_json::json!({
-                "error": "Publisher is deactivated",
-            }));
-        }
-        Ok(None) => {
-            return HttpResponse::NotFound().json(serde_json::json!({
-                "error": "Publisher not found",
-            }));
-        }
-        Err(e) => {
-            return HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("{}", e),
-            }));
-        }
-    }
-
-    match app_state.storage.store_package(&app_id, &version, &body) {
-        Ok(path) => {
-            info!( "Stored: {}", path.display());
-            HttpResponse::Ok().json(serde_json::json!({
-                "status": "uploaded",
-                "size": body.len(),
-                "sha3_256": compute_sha3_256_hex(&body),
-            }))
-        }
-        Err(e) => {
-            error!( "Failed to store package: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("{}", e),
-            }))
-        }
+        Ok(p) => HttpResponse::Ok().json(p),
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": format!("{}", e)
+        })),
     }
 }
 
@@ -208,7 +183,6 @@ pub async fn check_update(
     match app_state.db.get_latest_package(&app_id) {
         Ok(Some(latest)) => {
             let update_available = latest.version.is_newer_than(&body.current_version);
-
             let publisher_key = app_state
                 .db
                 .get_publisher(&latest.publisher_id)
@@ -217,7 +191,7 @@ pub async fn check_update(
                 .map(|p| p.public_key);
 
             info!(
-                 "Check {}: current={}, latest={}, update={}",
+                "🔍 Check {}: current={}, latest={}, update={}",
                 app_id, body.current_version, latest.version, update_available
             );
 
@@ -232,12 +206,9 @@ pub async fn check_update(
             latest_package: None,
             publisher_public_key: None,
         }),
-        Err(e) => {
-            error!( "Failed to check update: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("{}", e),
-            }))
-        }
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": format!("{}", e)
+        })),
     }
 }
 
@@ -251,13 +222,13 @@ pub async fn download_package(
 
     if !app_state.storage.package_exists(&app_id, &version) {
         return HttpResponse::NotFound().json(serde_json::json!({
-            "error": "Package not found",
+            "error": "Package not found"
         }));
     }
 
     match app_state.storage.read_package(&app_id, &version) {
         Ok(data) => {
-            info!( "Download: {} v{} ({} bytes)", app_id, version, data.len());
+            info!("📥 Download: {} v{} ({} bytes)", app_id, version, data.len());
             HttpResponse::Ok()
                 .content_type("application/octet-stream")
                 .append_header((
@@ -266,11 +237,216 @@ pub async fn download_package(
                 ))
                 .body(data)
         }
-        Err(e) => {
-            error!( "Failed to read package: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("{}", e),
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": format!("{}", e)
+        })),
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PUBLISHER ENDPOINTS (require auth token)
+// ═══════════════════════════════════════════════════════════════
+
+/// POST /api/publishers — register publisher keys (requires auth)
+pub async fn register_publisher(
+    state: SharedState,
+    body: web::Json<RegisterPublisherRequest>,
+    req: HttpRequest,
+) -> HttpResponse {
+    let (_username, session_pub_id) = match verify_auth(&state, &req).await {
+        Ok(auth) => auth,
+        Err(resp) => return resp,
+    };
+
+    // Publisher ID w kluczu musi zgadzać się z sesją
+    if body.public_key.publisher_id != session_pub_id {
+        return HttpResponse::Forbidden().json(serde_json::json!({
+            "error": format!(
+                "Key publisher_id '{}' does not match session publisher_id '{}'",
+                body.public_key.publisher_id, session_pub_id
+            )
+        }));
+    }
+
+    let app_state = state.read().await;
+    let publisher_id = body.public_key.publisher_id.clone();
+
+    let publisher = PublisherInfo {
+        id: publisher_id.clone(),
+        display_name: body.display_name.clone(),
+        public_key: body.public_key.clone(),
+        registered_at: Utc::now(),
+        active: true,
+    };
+
+    match app_state.db.register_publisher(&publisher) {
+        Ok(_) => {
+            info!("✅ Publisher keys registered: {}", publisher_id);
+            HttpResponse::Created().json(serde_json::json!({
+                "status": "registered",
+                "publisher_id": publisher_id,
             }))
         }
+        Err(e) => {
+            error!("❌ Register failed: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("{}", e)
+            }))
+        }
+    }
+}
+
+/// POST /api/packages/upload/{publisher_id}/{app_id}/{version} — requires auth
+pub async fn upload_package(
+    state: SharedState,
+    path: web::Path<(String, String, String)>,
+    body: web::Bytes,
+    req: HttpRequest,
+) -> HttpResponse {
+    let (username, session_pub_id) = match verify_auth(&state, &req).await {
+        Ok(auth) => auth,
+        Err(resp) => return resp,
+    };
+
+    let (publisher_id, app_id, version) = path.into_inner();
+
+    if publisher_id != session_pub_id {
+        return HttpResponse::Forbidden().json(serde_json::json!({
+            "error": "Publisher ID mismatch with session"
+        }));
+    }
+
+    let app_state = state.read().await;
+
+    match app_state.storage.store_package(&app_id, &version, &body) {
+        Ok(path) => {
+            info!("📁 {} uploaded: {}", username, path.display());
+            HttpResponse::Ok().json(serde_json::json!({
+                "status": "uploaded",
+                "size": body.len(),
+                "sha3_256": compute_sha3_256_hex(&body),
+            }))
+        }
+        Err(e) => {
+            error!("❌ Upload failed: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("{}", e)
+            }))
+        }
+    }
+}
+
+/// POST /api/packages/metadata — requires auth + signature verification
+pub async fn publish_metadata(
+    state: SharedState,
+    body: web::Json<PublishPackageRequest>,
+    req: HttpRequest,
+) -> HttpResponse {
+    let (username, session_pub_id) = match verify_auth(&state, &req).await {
+        Ok(auth) => auth,
+        Err(resp) => return resp,
+    };
+
+    if body.publisher_id != session_pub_id {
+        return HttpResponse::Forbidden().json(serde_json::json!({
+            "error": "Publisher ID mismatch with session"
+        }));
+    }
+
+    let app_state = state.read().await;
+
+    // Pobierz publishera
+    let publisher = match app_state.db.get_publisher(&body.publisher_id) {
+        Ok(Some(p)) => p,
+        Ok(None) => return HttpResponse::NotFound().json(serde_json::json!({
+            "error": "Publisher keys not found. Register keys first."
+        })),
+        Err(e) => return HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": format!("{}", e)
+        })),
+    };
+
+    if !publisher.active {
+        return HttpResponse::Forbidden().json(serde_json::json!({
+            "error": "Publisher deactivated"
+        }));
+    }
+
+    // Wczytaj plik
+    let package_data = match app_state.storage.read_package(
+        &body.app_id,
+        &body.version.to_string(),
+    ) {
+        Ok(data) => data,
+        Err(_) => return HttpResponse::BadRequest().json(serde_json::json!({
+            "error": "Package file not found. Upload first."
+        })),
+    };
+
+    // Zbuduj tymczasowe metadata do weryfikacji
+    let temp_metadata = PackageMetadata {
+        package_id: String::new(),
+        app_id: body.app_id.clone(),
+        version: body.version.clone(),
+        publisher_id: body.publisher_id.clone(),
+        sha3_256_hash: body.sha3_256_hash.clone(),
+        file_size: body.file_size,
+        filename: body.filename.clone(),
+        description: body.description.clone(),
+        target_platforms: body.target_platforms.clone(),
+        signature: body.signature.clone(),
+        published_at: Utc::now(),
+        min_upgrade_from: body.min_upgrade_from.clone(),
+        changelog: body.changelog.clone(),
+    };
+
+    // WERYFIKACJA PODPISU NA SERWERZE
+    match crate::publisher::verify_package_on_publish(
+        &temp_metadata,
+        &package_data,
+        &publisher,
+    ) {
+        Ok(result) if result.overall_valid => {
+            info!(
+                "✅ Signature verified: {} v{} by {}",
+                body.app_id, body.version, username
+            );
+        }
+        Ok(result) => {
+            warn!(
+                "❌ Signature FAILED: {} v{} by {}: {}",
+                body.app_id, body.version, username, result.details
+            );
+            return HttpResponse::BadRequest().json(serde_json::json!({
+                "error": "Signature verification failed on server",
+                "details": result.details
+            }));
+        }
+        Err(e) => return HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": format!("Verification error: {}", e)
+        })),
+    }
+
+    // Zapisz metadane
+    let metadata = PackageMetadata {
+        package_id: Uuid::new_v4().to_string(),
+        ..temp_metadata
+    };
+
+    match app_state.db.save_package_metadata(&metadata) {
+        Ok(_) => {
+            info!(
+                "✅ Published: {} v{} by {}",
+                metadata.app_id, metadata.version, username
+            );
+            HttpResponse::Created().json(serde_json::json!({
+                "status": "published",
+                "package_id": metadata.package_id,
+                "verified": true,
+            }))
+        }
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": format!("{}", e)
+        })),
     }
 }

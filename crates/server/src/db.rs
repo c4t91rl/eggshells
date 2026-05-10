@@ -51,6 +51,25 @@ impl Database {
                     version_minor DESC,
                     version_patch DESC
                 );
+
+            CREATE TABLE IF NOT EXISTS publisher_accounts (
+                username TEXT PRIMARY KEY,
+                publisher_id TEXT NOT NULL UNIQUE,
+                display_name TEXT NOT NULL,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                active INTEGER NOT NULL DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS sessions (
+                token TEXT PRIMARY KEY,
+                username TEXT NOT NULL,
+                publisher_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                FOREIGN KEY (username) REFERENCES publisher_accounts(username)
+            );
             ",
         )
         .context("Failed to create tables")?;
@@ -59,6 +78,8 @@ impl Database {
             conn: Mutex::new(conn),
         })
     }
+
+    // ─── Publishers ─────────────────────────────────────────────
 
     pub fn register_publisher(&self, publisher: &PublisherInfo) -> Result<()> {
         let conn = self.conn.lock().unwrap();
@@ -123,6 +144,8 @@ impl Database {
         let publishers = self.list_publishers()?;
         Ok(publishers.into_iter().find(|p| p.id == publisher_id))
     }
+
+    // ─── Packages ───────────────────────────────────────────────
 
     pub fn save_package_metadata(&self, metadata: &PackageMetadata) -> Result<()> {
         let conn = self.conn.lock().unwrap();
@@ -301,5 +324,123 @@ impl Database {
             .collect();
 
         Ok(apps)
+    }
+
+    // ─── Auth ───────────────────────────────────────────────────
+
+    pub fn create_publisher_account(
+        &self,
+        username: &str,
+        publisher_id: &str,
+        display_name: &str,
+        password: &str,
+    ) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        let salt = crate::auth::generate_salt();
+        let password_hash = crate::auth::hash_password(password, &salt);
+
+        conn.execute(
+            "INSERT INTO publisher_accounts
+             (username, publisher_id, display_name, password_hash, salt, created_at, active)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1)",
+            params![
+                username,
+                publisher_id,
+                display_name,
+                password_hash,
+                salt,
+                chrono::Utc::now().to_rfc3339(),
+            ],
+        ).context("Failed to create publisher account")?;
+
+        Ok(())
+    }
+
+    pub fn verify_login(&self, username: &str, password: &str) -> Result<Option<(String, String)>> {
+        let conn = self.conn.lock().unwrap();
+
+        let result = conn.query_row(
+            "SELECT publisher_id, password_hash, salt, active
+             FROM publisher_accounts WHERE username = ?1",
+            params![username],
+            |row| Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i32>(3)?,
+            )),
+        ).optional().context("Login query failed")?;
+
+        match result {
+            None => Ok(None),
+            Some((publisher_id, hash, salt, active)) => {
+                if active == 0 {
+                    return Ok(None);
+                }
+                if crate::auth::verify_password(password, &salt, &hash) {
+                    Ok(Some((username.to_string(), publisher_id)))
+                } else {
+                    Ok(None)
+                }
+            }
+        }
+    }
+
+    pub fn create_session(
+        &self,
+        token: &str,
+        username: &str,
+        publisher_id: &str,
+        expires_at: &chrono::DateTime<chrono::Utc>,
+    ) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO sessions (token, username, publisher_id, created_at, expires_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                token,
+                username,
+                publisher_id,
+                chrono::Utc::now().to_rfc3339(),
+                expires_at.to_rfc3339(),
+            ],
+        ).context("Failed to create session")?;
+        Ok(())
+    }
+
+    pub fn verify_session(&self, token: &str) -> Result<Option<(String, String)>> {
+        let conn = self.conn.lock().unwrap();
+
+        let result = conn.query_row(
+            "SELECT username, publisher_id, expires_at FROM sessions WHERE token = ?1",
+            params![token],
+            |row| Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            )),
+        ).optional().context("Session query failed")?;
+
+        match result {
+            None => Ok(None),
+            Some((username, publisher_id, expires_str)) => {
+                let expires = chrono::DateTime::parse_from_rfc3339(&expires_str)
+                    .map(|dt| dt.with_timezone(&chrono::Utc))
+                    .unwrap_or_else(|_| chrono::Utc::now());
+
+                if chrono::Utc::now() > expires {
+                    conn.execute("DELETE FROM sessions WHERE token = ?1", params![token]).ok();
+                    Ok(None)
+                } else {
+                    Ok(Some((username, publisher_id)))
+                }
+            }
+        }
+    }
+
+    pub fn delete_session(&self, token: &str) -> Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM sessions WHERE token = ?1", params![token])?;
+        Ok(())
     }
 }
