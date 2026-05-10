@@ -292,9 +292,9 @@ pub fn verify_hybrid_signature(
 
     let details = format!(
         "Dilithium3: {} | Ed25519: {} | Overall: {}",
-        if dilithium_valid { "  VALID" } else { "  INVALID" },
-        if ed25519_valid { "  VALID" } else { "  INVALID" },
-        if overall_valid { "  PASSED" } else { "  FAILED" },
+        if dilithium_valid {  "VALID" } else {  "INVALID" },
+        if ed25519_valid {  "VALID" } else {  "INVALID" },
+        if overall_valid {  "PASSED" } else {  "FAILED" },
     );
 
     Ok(IntegrityResult {
