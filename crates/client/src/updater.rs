@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use secure_update_common::*;
-use crate::verifier::{self, VerificationReport};
+use crate::verifier::VerificationReport;
 
 pub fn fetch_apps(server_url: &str) -> Result<ListAppsResponse> {
     let client = reqwest::blocking::Client::builder()
@@ -65,7 +65,10 @@ pub fn download_package(
         .build()?;
 
     let response = client
-        .get(format!("{}/api/download/{}/{}", server_url, app_id, version))
+        .get(format!(
+            "{}/api/download/{}/{}",
+            server_url, app_id, version
+        ))
         .send()
         .context("Failed to download package")?;
 
@@ -85,19 +88,85 @@ pub fn apply_update(
     metadata: &PackageMetadata,
     install_dir: &str,
 ) -> Result<()> {
-    std::fs::create_dir_all(install_dir)?;
-    let output_path = std::path::Path::new(install_dir).join(&metadata.filename);
-    std::fs::write(&output_path, package_data)
-        .context("Failed to write update file")?;
+    use std::ffi::OsStr;
+
+    std::fs::create_dir_all(install_dir)
+        .context("Failed to create install directory")?;
+
+    // ── Krok 1: wyodrębnij TYLKO nazwę pliku ──────────────────
+    // Path::file_name() zwraca None jeśli filename kończy się na ".."
+    // lub jest pusty. Dla "../../etc/evil" zwraca "evil" — bezpieczne.
+    // Dla "../" zwraca None → fallback.
+    let safe_filename = std::path::Path::new(&metadata.filename)
+        .file_name()
+        .unwrap_or_else(|| OsStr::new("package.bin"))
+        .to_owned();
+
+    // Dodatkowa weryfikacja: nazwa nie może zawierać separatorów
+    // (na wypadek platform-specific edge cases)
+    let filename_str = safe_filename.to_string_lossy();
+    if filename_str.contains('/') || filename_str.contains('\\') {
+        anyhow::bail!(
+            "Invalid filename: contains path separator: {}",
+            filename_str
+        );
+    }
+    if filename_str == ".." || filename_str == "." {
+        anyhow::bail!("Invalid filename: {}", filename_str);
+    }
+
+    let output_path = std::path::Path::new(install_dir)
+        .join(&safe_filename);
+
+    // ── Krok 2: zapisz do pliku tymczasowego ──────────────────
+    // Atomowe: najpierw .tmp, potem rename.
+    // Jeśli coś się posypie w trakcie zapisu — nie nadpiszemy
+    // istniejącego pliku częściowymi danymi.
+    let tmp_path = output_path.with_extension("tmp");
+
+    std::fs::write(&tmp_path, package_data)
+        .context("Failed to write temp file")?;
+
+    // ── Krok 3: weryfikacja przez canonicalize ─────────────────
+    // canonicalize() rozwiązuje symlinki i ".." w ścieżce.
+    // Nawet jeśli ktoś podmienił install_dir na symlink
+    // prowadzący gdzie indziej — to wykryjemy.
+    let canonical_install =
+        std::path::Path::new(install_dir)
+            .canonicalize()
+            .context("Failed to canonicalize install directory")?;
+
+    let canonical_tmp = tmp_path
+        .canonicalize()
+        .context("Failed to canonicalize temp file path")?;
+
+    if !canonical_tmp.starts_with(&canonical_install) {
+        // Usuń plik tymczasowy przed zwróceniem błędu
+        std::fs::remove_file(&tmp_path).ok();
+        anyhow::bail!(
+            "Path traversal detected: {} is outside install dir {}",
+            canonical_tmp.display(),
+            canonical_install.display()
+        );
+    }
+
+    // ── Krok 4: atomowe przeniesienie ─────────────────────────
+    // std::fs::rename jest atomowe na tym samym filesystemie.
+    // Klient nie zobaczy częściowo zapisanego pliku.
+    std::fs::rename(&tmp_path, &output_path)
+        .context("Failed to finalize installation (rename failed)")?;
+
     tracing::info!(
-         "Applied: {} v{} → {}",
+        "Applied: {} v{} → {}",
         metadata.app_id,
         metadata.version,
         output_path.display()
     );
+
     Ok(())
 }
 
+/// Wynik pełnego pipeline'u aktualizacji
 pub enum UpdateResult {
     UpToDate,
     UpdateReady {
