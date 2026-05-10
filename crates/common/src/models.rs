@@ -1,7 +1,6 @@
-use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
+use std::collections::HashMap;
 
 use crate::crypto::HybridPublicKey;
 use crate::crypto::HybridSignature;
@@ -52,14 +51,23 @@ impl Platform {
     pub fn current() -> Self {
         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
         return Platform::LinuxX86_64;
+
         #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
         return Platform::LinuxAarch64;
-        #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+
+        #[cfg(all(
+            target_os = "windows",
+            target_arch = "x86_64"
+        ))]
         return Platform::WindowsX86_64;
+
         #[cfg(not(any(
             all(target_os = "linux", target_arch = "x86_64"),
             all(target_os = "linux", target_arch = "aarch64"),
-            all(target_os = "windows", target_arch = "x86_64"),
+            all(
+                target_os = "windows",
+                target_arch = "x86_64"
+            ),
         )))]
         return Platform::CrossPlatform;
     }
@@ -154,27 +162,15 @@ pub enum UpdateState {
 /// Lokalna konfiguracja klienta
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientConfig {
-    /// Lista znanych serwerów
     pub servers: Vec<String>,
-    /// Aktualnie wybrany serwer
     pub selected_server: String,
-
-    /// Aktywna aplikacja (legacy/compat)
     pub app_id: String,
-    /// Aktualna wersja aktywnej aplikacji (legacy/compat)
     pub current_version: SemanticVersion,
-
-    /// Katalogi
     pub download_dir: String,
     pub install_dir: String,
-
-    /// Pinned keys per server
-    pub pinned_publisher_keys_by_server: HashMap<String, Vec<HybridPublicKey>>,
-
-    /// Zainstalowane aplikacje (lokalny stan)
+    pub pinned_publisher_keys_by_server:
+        HashMap<String, Vec<HybridPublicKey>>,
     pub installed_apps: Vec<InstalledApp>,
-
-    /// Ustawienia
     pub check_interval_secs: u64,
     pub auto_download: bool,
 }
@@ -182,8 +178,11 @@ pub struct ClientConfig {
 impl Default for ClientConfig {
     fn default() -> Self {
         Self {
-            servers: vec!["http://127.0.0.1:8443".to_string()],
-            selected_server: "http://127.0.0.1:8443".to_string(),
+            servers: vec![
+                "http://127.0.0.1:8443".to_string(),
+            ],
+            selected_server: "http://127.0.0.1:8443"
+                .to_string(),
             app_id: "example-app".to_string(),
             current_version: SemanticVersion::new(1, 0, 0),
             download_dir: "./downloads".to_string(),
