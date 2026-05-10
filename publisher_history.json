@@ -5,7 +5,7 @@
     "publisher_id": "my-publisher",
     "hash": "20779f853d154aced4bf9627bae8150af1b24d9e5bbe3861fb4ab393531a3c5b",
     "timestamp": "2026-05-10T05:20:40.919337682+00:00",
-    "server": "http://127.0.0.1:8443"
+    "server": "https://127.0.0.1:8443"
   },
   {
     "app_id": "uwu",
@@ -13,6 +13,6 @@
     "publisher_id": "my-publisher",
     "hash": "20779f853d154aced4bf9627bae8150af1b24d9e5bbe3861fb4ab393531a3c5b",
     "timestamp": "2026-05-10T05:20:44.438823488+00:00",
-    "server": "http://127.0.0.1:8443"
+    "server": "https://127.0.0.1:8443"
   }
 ]
