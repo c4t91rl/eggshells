@@ -173,12 +173,12 @@ impl eframe::App for UpdateApp {
                 ui.selectable_value(
                     &mut self.active_tab,
                     Tab::Security,
-                    "🛡️ Security",
+                    "🛡 Security",
                 );
                 ui.selectable_value(
                     &mut self.active_tab,
                     Tab::Settings,
-                    "⚙️ Settings",
+                    "⚙ Settings",
                 );
                 ui.selectable_value(
                     &mut self.active_tab,
@@ -203,7 +203,7 @@ impl eframe::App for UpdateApp {
                         }
                         UpdateState::Verifying => "🔍 Verifying...",
                         UpdateState::ReadyToInstall => "✅ Ready to install",
-                        UpdateState::Installing => "⚙️ Installing...",
+                        UpdateState::Installing => "⚙ Installing...",
                         UpdateState::Completed => "🎉 Done",
                         UpdateState::Error { .. } => "❌ Error",
                     };
@@ -281,7 +281,7 @@ impl UpdateApp {
                 ui.text_edit_singleline(
                     &mut self.new_server_input,
                 )
-                .on_hover_text("http://host:port");
+                .on_hover_text("https://host:port");
 
                 if ui
                     .button("➕")
@@ -314,7 +314,7 @@ impl UpdateApp {
                         .retain(|s| *s != rm);
                     if self.config.servers.is_empty() {
                         self.config.servers.push(
-                            "http://127.0.0.1:8443".into(),
+                            "https://127.0.0.1:8443".into(),
                         );
                     }
                     let first = self.config.servers[0].clone();
@@ -810,7 +810,7 @@ impl UpdateApp {
                 ("✅", "Client tampering", "Server-verified self-integrity"),
                 ("✅", "Brute-force login", "Rate limit (5/60s) + Argon2id"),
                 ("✅", "Path traversal", "Filename sanitization"),
-                ("⚠️", "Transport security", "HTTP in prototype (TLS 1.3 in production)"),
+                ("✅", "Transport security", "HTTPS fully suported"),
             ];
             egui::Grid::new("prot_grid")
                 .num_columns(3)
