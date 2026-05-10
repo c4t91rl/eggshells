@@ -4,6 +4,18 @@
 
 set -e
 
+# Kill stale demo server/client processes and clean previous demo state.
+echo "Cleaning demo state..."
+pkill -f "secure-update-server" >/dev/null 2>&1 || true
+pkill -f "secure-update-client" >/dev/null 2>&1 || true
+sleep 1
+if lsof -iTCP:8443 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo "Port 8443 is still in use after killing stale processes."
+    echo "Please stop the running process or choose a different port."
+    exit 1
+fi
+rm -rf ./server_data/db ./server_data/packages ./demo-keys /tmp/demo-app-v1.1.0.bin
+
 echo "═══════════════════════════════════════════════════"
 echo  "Secure Update System - Full Demo"
 echo "═══════════════════════════════════════════════════"
@@ -30,24 +42,54 @@ cargo run --release -p secure-update-publisher -- generate-keys \
     --output ./demo-keys/
 echo ""
 
-# 4. Rejestracja publishera
-echo "4. Registering publisher..."
+# 4. Tworzenie konta i logowanie
+USERNAME="demo-user"
+PASSWORD="demo-password"
+
+echo "4. Creating publisher account..."
+cargo run --release -p secure-update-publisher -- create-account \
+    --username "$USERNAME" \
+    --password "$PASSWORD" \
+    --publisher-id "demo-publisher" \
+    --display-name "Demo Publisher Inc." \
+    --server http://127.0.0.1:8443
+echo ""
+
+echo "5. Logging in..."
+TOKEN=$(cargo run --release -p secure-update-publisher -- login \
+    --username "$USERNAME" \
+    --password "$PASSWORD" \
+    --server http://127.0.0.1:8443 | awk '/token:/ {print $2}')
+
+if [ -z "$TOKEN" ]; then
+    echo "Failed to obtain auth token"
+    kill $SERVER_PID 2>/dev/null || true
+    exit 1
+fi
+
+echo " Token: $TOKEN"
+echo ""
+
+# 6. Rejestracja publishera
+echo "6. Registering publisher..."
 cargo run --release -p secure-update-publisher -- register \
     --keys ./demo-keys/demo-publisher.keys.json \
     --server http://127.0.0.1:8443 \
-    --name "Demo Publisher Inc."
+    --name "Demo Publisher Inc." \
+    --token "$TOKEN"
 echo ""
 
-# 5. Tworzenie testowego pakietu
-echo "5. Creating test package..."
+# 7. Tworzenie testowego pakietu
+echo "7. Creating test package..."
 echo "This is demo application v1.1.0 with important security fixes." > /tmp/demo-app-v1.1.0.bin
 echo ""
 
-# 6. Podpisywanie i publikacja
-echo "6. Signing and publishing package..."
+# 8. Podpisywanie i publikacja
+echo "8. Signing and publishing package..."
 cargo run --release -p secure-update-publisher -- publish \
     --keys ./demo-keys/demo-publisher.keys.json \
     --server http://127.0.0.1:8443 \
+    --token "$TOKEN" \
     --app-id "example-app" \
     --version "1.1.0" \
     --file /tmp/demo-app-v1.1.0.bin \
@@ -75,5 +117,5 @@ echo "════════════════════════�
 read
 kill $SERVER_PID 2>/dev/null || true
 kill $CLIENT_PID 2>/dev/null || true
-rm -rf ./demo-keys /tmp/demo-app-v1.1.0.bin
+rm -rf ./demo-keys ./server_data/db ./server_data/packages /tmp/demo-app-v1.1.0.bin
 echo "Demo stopped."
