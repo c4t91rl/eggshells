@@ -24,6 +24,7 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use secure_update_common::*;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -45,6 +46,36 @@ enum Commands {
         #[arg(long, default_value = "./keys")]
         output: PathBuf,
     },
+    /// Utwórz konto publishera na serwerze
+    CreateAccount {
+        /// Nazwa użytkownika do logowania
+        #[arg(long)]
+        username: String,
+        /// Hasło do konta
+        #[arg(long)]
+        password: String,
+        /// ID publishera powiązane z kontem
+        #[arg(long)]
+        publisher_id: String,
+        /// Nazwa wyświetlana
+        #[arg(long)]
+        display_name: String,
+        /// URL serwera
+        #[arg(long, default_value = "http://127.0.0.1:8443")]
+        server: String,
+    },
+    /// Zaloguj się i pobierz token sesji
+    Login {
+        /// Nazwa użytkownika
+        #[arg(long)]
+        username: String,
+        /// Hasło
+        #[arg(long)]
+        password: String,
+        /// URL serwera
+        #[arg(long, default_value = "http://127.0.0.1:8443")]
+        server: String,
+    },
     /// Zarejestruj publishera na serwerze
     Register {
         /// Ścieżka do pliku kluczy
@@ -56,6 +87,9 @@ enum Commands {
         /// Nazwa wyświetlana
         #[arg(long)]
         name: String,
+        /// Token sesji otrzymany po logowaniu
+        #[arg(long)]
+        token: String,
     },
     /// Podpisz i opublikuj pakiet aktualizacji
     Publish {
@@ -65,6 +99,9 @@ enum Commands {
         /// URL serwera
         #[arg(long, default_value = "http://127.0.0.1:8443")]
         server: String,
+        /// Token sesji otrzymany po logowaniu
+        #[arg(long)]
+        token: String,
         /// ID aplikacji
         #[arg(long)]
         app_id: String,
@@ -117,21 +154,37 @@ async fn main() -> Result<()> {
             output,
         } => generate_keys(&publisher_id, &output),
 
+        Commands::CreateAccount {
+            username,
+            password,
+            publisher_id,
+            display_name,
+            server,
+        } => create_account(&username, &password, &publisher_id, &display_name, &server).await,
+
+        Commands::Login {
+            username,
+            password,
+            server,
+        } => login(&username, &password, &server).await,
+
         Commands::Register {
             keys,
             server,
             name,
-        } => register_publisher(&keys, &server, &name).await,
+            token,
+        } => register_publisher(&keys, &server, &name, &token).await,
 
         Commands::Publish {
             keys,
             server,
+            token,
             app_id,
             version,
             file,
             description,
             changelog,
-        } => publish_package(&keys, &server, &app_id, &version, &file, &description, &changelog).await,
+        } => publish_package(&keys, &server, &token, &app_id, &version, &file, &description, &changelog).await,
 
         Commands::Sign {
             keys,
@@ -184,8 +237,94 @@ fn generate_keys(publisher_id: &str, output: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-async fn register_publisher(keys: &PathBuf, server: &str, name: &str) -> Result<()> {
-    println!( "Registering publisher on {}...", server);
+#[derive(Debug, Serialize, Deserialize)]
+struct AuthRequest<'a> {
+    username: &'a str,
+    password: &'a str,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct CreateAccountRequest<'a> {
+    username: &'a str,
+    password: &'a str,
+    publisher_id: &'a str,
+    display_name: &'a str,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct LoginResponse {
+    token: String,
+    publisher_id: String,
+    expires_at: String,
+}
+
+async fn create_account(
+    username: &str,
+    password: &str,
+    publisher_id: &str,
+    display_name: &str,
+    server: &str,
+) -> Result<()> {
+    println!("Creating publisher account on {}...", server);
+
+    let request = CreateAccountRequest {
+        username,
+        password,
+        publisher_id,
+        display_name,
+    };
+
+    let client = reqwest::Client::new();
+    let response = client
+        .post(format!("{}/api/auth/register", server))
+        .json(&request)
+        .send()
+        .await
+        .context("Failed to connect to server")?;
+
+    if response.status().is_success() {
+        let body: serde_json::Value = response.json().await?;
+        println!("Account created successfully!");
+        println!("Publisher ID: {}", body["publisher_id"]);
+        Ok(())
+    } else {
+        let status = response.status();
+        let body = response.text().await?;
+        anyhow::bail!("Account creation failed: {} - {}", status, body)
+    }
+}
+
+async fn login(username: &str, password: &str, server: &str) -> Result<()> {
+    println!("Logging in to {}...", server);
+
+    let request = AuthRequest { username, password };
+    let client = reqwest::Client::new();
+    let response = client
+        .post(format!("{}/api/auth/login", server))
+        .json(&request)
+        .send()
+        .await
+        .context("Failed to connect to server")?;
+
+    if response.status().is_success() {
+        let body: LoginResponse = response.json().await?;
+        println!("Login successful!");
+        println!("token: {}", body.token);
+        Ok(())
+    } else {
+        let status = response.status();
+        let body = response.text().await?;
+        anyhow::bail!("Login failed: {} - {}", status, body)
+    }
+}
+
+async fn register_publisher(
+    keys: &PathBuf,
+    server: &str,
+    name: &str,
+    token: &str,
+) -> Result<()> {
+    println!("Registering publisher on {}...", server);
 
     let key_data = std::fs::read(keys).context("Failed to read key file")?;
     let keypair = HybridKeyPair::import_secret_keys(&key_data)?;
@@ -199,6 +338,7 @@ async fn register_publisher(keys: &PathBuf, server: &str, name: &str) -> Result<
     let client = reqwest::Client::new();
     let response = client
         .post(format!("{}/api/publishers", server))
+        .header("Authorization", format!("Bearer {}", token))
         .json(&request)
         .send()
         .await
@@ -206,12 +346,12 @@ async fn register_publisher(keys: &PathBuf, server: &str, name: &str) -> Result<
 
     if response.status().is_success() {
         let body: serde_json::Value = response.json().await?;
-        println!( "Publisher registered successfully!");
-        println!( " Publisher ID: {}", body["publisher_id"]);
+        println!("Publisher registered successfully!");
+        println!("Publisher ID: {}", body["publisher_id"]);
     } else {
         let status = response.status();
         let body = response.text().await?;
-        println!( "Registration failed: {} - {}", status, body);
+        anyhow::bail!("Registration failed: {} - {}", status, body);
     }
 
     Ok(())
@@ -220,6 +360,7 @@ async fn register_publisher(keys: &PathBuf, server: &str, name: &str) -> Result<
 async fn publish_package(
     keys: &PathBuf,
     server: &str,
+    token: &str,
     app_id: &str,
     version: &str,
     file: &PathBuf,
@@ -265,6 +406,7 @@ async fn publish_package(
             "{}/api/packages/upload/{}/{}/{}",
             server, keypair.publisher_id, app_id, version
         ))
+        .header("Authorization", format!("Bearer {}", token))
         .body(package_data.clone())
         .send()
         .await
@@ -294,6 +436,7 @@ async fn publish_package(
 
     let meta_resp = client
         .post(format!("{}/api/packages/metadata", server))
+        .header("Authorization", format!("Bearer {}", token))
         .json(&metadata_req)
         .send()
         .await

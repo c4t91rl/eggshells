@@ -1,4 +1,5 @@
 mod api;
+mod auth;
 mod db;
 mod publisher;
 mod storage;
@@ -22,7 +23,7 @@ async fn main() -> Result<()> {
         .with_target(false)
         .init();
 
-    info!( "Starting Secure Update Server...");
+    info!("🚀 Starting Secure Update Server...");
 
     std::fs::create_dir_all("./server_data/packages")?;
     std::fs::create_dir_all("./server_data/db")?;
@@ -35,7 +36,7 @@ async fn main() -> Result<()> {
         storage,
     })));
 
-    info!( "Listening on http://127.0.0.1:8443");
+    info!("🌐 Listening on http://127.0.0.1:8443");
 
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -47,18 +48,29 @@ async fn main() -> Result<()> {
         App::new()
             .wrap(cors)
             .app_data(app_state.clone())
+            .app_data(web::PayloadConfig::new(20 * 1024 * 1024))
+            .app_data(web::JsonConfig::default().limit(10 * 1024 * 1024))
             .service(
                 web::scope("/api")
-                    .route("/health",    web::get().to(api::health_check))
-                    .route("/publishers", web::post().to(api::register_publisher))
+                    // ── Public (no auth) ─────────────────────
+                    .route("/health", web::get().to(api::health_check))
+                    .route("/apps", web::get().to(api::list_apps))
                     .route("/publishers", web::get().to(api::list_publishers))
-                    .route("/apps",       web::get().to(api::list_apps))
-                    .route("/packages/metadata", web::post().to(api::publish_metadata))
-                    .route("/packages/upload/{publisher_id}/{app_id}/{version}",
-                           web::post().to(api::upload_package))
                     .route("/check/{app_id}", web::post().to(api::check_update))
-                    .route("/download/{app_id}/{version}",
-                           web::get().to(api::download_package)),
+                    .route("/download/{app_id}/{version}", web::get().to(api::download_package))
+
+                    // ── Auth ─────────────────────────────────
+                    .route("/auth/register", web::post().to(api::register_account))
+                    .route("/auth/login", web::post().to(api::login))
+                    .route("/auth/logout", web::post().to(api::logout))
+
+                    // ── Publisher (requires Bearer token) ────
+                    .route("/publishers", web::post().to(api::register_publisher))
+                    .route("/packages/metadata", web::post().to(api::publish_metadata))
+                    .route(
+                        "/packages/upload/{publisher_id}/{app_id}/{version}",
+                        web::post().to(api::upload_package),
+                    ),
             )
     })
     .bind("127.0.0.1:8443")?
