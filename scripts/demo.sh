@@ -52,14 +52,14 @@ cargo run --release -p secure-update-publisher -- create-account \
     --password "$PASSWORD" \
     --publisher-id "demo-publisher" \
     --display-name "Demo Publisher Inc." \
-    --server http://127.0.0.1:8443
+    --server https://127.0.0.1:8443
 echo ""
 
 echo "5. Logging in..."
 TOKEN=$(cargo run --release -p secure-update-publisher -- login \
     --username "$USERNAME" \
     --password "$PASSWORD" \
-    --server http://127.0.0.1:8443 | awk '/token:/ {print $2}')
+    --server https://127.0.0.1:8443 | awk '/token:/ {print $2}')
 
 if [ -z "$TOKEN" ]; then
     echo "Failed to obtain auth token"
@@ -74,7 +74,7 @@ echo ""
 echo "6. Registering publisher..."
 cargo run --release -p secure-update-publisher -- register \
     --keys ./demo-keys/demo-publisher.keys.json \
-    --server http://127.0.0.1:8443 \
+    --server https://127.0.0.1:8443 \
     --name "Demo Publisher Inc." \
     --token "$TOKEN"
 echo ""
@@ -88,7 +88,7 @@ echo ""
 echo "8. Signing and publishing package..."
 cargo run --release -p secure-update-publisher -- publish \
     --keys ./demo-keys/demo-publisher.keys.json \
-    --server http://127.0.0.1:8443 \
+    --server https://127.0.0.1:8443 \
     --token "$TOKEN" \
     --app-id "example-app" \
     --version "1.1.0" \
