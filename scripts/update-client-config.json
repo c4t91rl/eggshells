@@ -1,0 +1,14 @@
+{
+  "server_url": "http://127.0.0.1:8443",
+  "app_id": "example-app",
+  "current_version": {
+    "major": 1,
+    "minor": 0,
+    "patch": 0
+  },
+  "download_dir": "./downloads",
+  "install_dir": "./installed",
+  "pinned_publisher_keys": [],
+  "check_interval_secs": 3600,
+  "auto_download": false
+}
