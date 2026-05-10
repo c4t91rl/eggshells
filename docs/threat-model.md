@@ -70,22 +70,30 @@
 ## Kluczowe scenariusze ataków
 
 ### Scenariusz 1: MITM Attack
-Atakujący Klient Serwer
-│ │ │
-│ Przechwytuje ruch │ │
-│◄───────────────────────┤──────────────────────►│
-│ │ │
-│ Podmienia pakiet │ │
-│ na złośliwy │ │
-│───────────────────────►│ │
-│ │ │
-│ │ [SHA3-256 mismatch!] │
-│ │ [Sig verification │
-│ │ FAILED!] │
-│ │ ❌ ATAK ZABLOKOWANY │
 
-text
-
+```
+Klient              Atakujący (MITM)             Serwer
+    │                        │                        │
+    │   Wysyła pakiet        │                        │
+    │───────────────────────>│                        │
+    │                        │  Przechwytuje i        │
+    │                        │  modyfikuje pakiet     │
+    │                        │                        │
+    │                        │   Wysyła złośliwy      │
+    │                        │   pakiet do serwera    │
+    │                        └───────────────────────>│
+    │                                                 │
+    │                                       [ Weryfikacja... ]
+    │                                                 │
+    │                                       [ SHA3-256 mismatch! ]
+    │                                       [ Sig verification   ]
+    │                                       [      FAILED!       ]
+    │                                                 │
+    │             KOMUNIKAT BŁĘDU                     │
+    │<────────────────────────────────────────────────┤
+    │                                                 │
+    │                ❌ ATAK ZABLOKOWANY              │
+```
 
 **Ochrona:** SHA3-256 hash + hybrydowe podpisy cyfrowe. Atakujący nie ma kluczy prywatnych publishera, więc nie może podpisać zmodyfikowanego pakietu.
 
@@ -101,9 +109,6 @@ offered_version = 1.0.0
 
 is_safe_upgrade(2.0.0 → 1.0.0) = FALSE
 ❌ ATAK ZABLOKOWANY
-
-text
-
 
 **Ochrona:** Monotonic version check – klient bezwzględnie odmawia instalacji wersji <= obecnej.
 
@@ -121,9 +126,6 @@ Ed25519: ✅ (fałszywy, ale...)
 overall = Dilithium3 AND Ed25519
 overall = TRUE AND FALSE = FALSE
 ❌ ATAK ZABLOKOWANY
-
-text
-
 
 **Ochrona:** Dilithium3 jest odporny na kwantowe ataki. Hybrid scheme wymaga OBU podpisów.
 
@@ -155,9 +157,6 @@ Ed25519: ✅ fałszywy, ale...
 
 overall = FALSE AND TRUE = FALSE
 ❌ ATAK ZABLOKOWANY
-
-text
-
 
 ## Ryzyko rezydualne
 
