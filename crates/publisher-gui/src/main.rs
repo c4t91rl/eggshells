@@ -615,11 +615,9 @@ impl PublisherApp {
                 self.session_publisher_id =
                     data["publisher_id"].as_str().map(|s| s.into());
                 
-                // 🔴 DODANY KOD: Nadpisz input do generowania kluczy prawdziwym ID z serwera
                 if let Some(ref pub_id) = self.session_publisher_id {
                     self.publisher_id_input = pub_id.clone();
                 }
-                // --------------------------------------------------------
 
                 self.screen = Screen::Main;
                 self.password.clear();
