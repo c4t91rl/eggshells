@@ -198,7 +198,7 @@ async fn register_publisher(keys: &PathBuf, server: &str, name: &str) -> Result<
 
     let client = reqwest::Client::new();
     let response = client
-        .post(format!("{}/api/publishers", server))
+        .post(format!("{}/api/publishers", server.trim_end_matches('/')))
         .json(&request)
         .send()
         .await
@@ -263,7 +263,7 @@ async fn publish_package(
     let upload_resp = client
         .post(format!(
             "{}/api/packages/upload/{}/{}/{}",
-            server, keypair.publisher_id, app_id, version
+            server.trim_end_matches('/'), keypair.publisher_id, app_id, version
         ))
         .body(package_data.clone())
         .send()
@@ -293,7 +293,7 @@ async fn publish_package(
     };
 
     let meta_resp = client
-        .post(format!("{}/api/packages/metadata", server))
+        .post(format!("{}/api/packages/metadata", server.trim_end_matches('/')))
         .json(&metadata_req)
         .send()
         .await
